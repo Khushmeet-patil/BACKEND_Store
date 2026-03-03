@@ -1,29 +1,36 @@
 const nodemailer = require("nodemailer");
 const logger = require("../logger");
 
+const port = parseInt(process.env.EMAIL_PORT) || 587;
+const secure = port === 465;
+
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
-  port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: String(process.env.EMAIL_PORT) === "465",
+  port: port,
+  secure: secure,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
+    minVersion: "TLSv1.2"
   },
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
+  connectionTimeout: 15000, // Increased to 15s
+  greetingTimeout: 15000,
+  socketTimeout: 15000,
 });
 
 const sendEmail = async ({ to, subject, html }) => {
-  // Debug log
-  console.log(`Attempting to send email to ${to} using host ${process.env.EMAIL_HOST} on port ${process.env.EMAIL_PORT}`);
+  console.log(`Email Debug: Host=${process.env.EMAIL_HOST}, Port=${port}, Secure=${secure}, User=${process.env.EMAIL_USER}`);
 
   try {
+    // Verify connection before sending
+    await transporter.verify();
+    console.log("SMTP connection verified successfully");
+
     const info = await transporter.sendMail({
-      from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+      from: `"${process.env.EMAIL_FROM || 'VedicStore'}" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html,
@@ -43,8 +50,8 @@ const sendEmail = async ({ to, subject, html }) => {
       errorCode: error.code,
       command: error.command
     });
-    console.error("Nodemailer Error Details:", error);
-    throw new Error(`Email could not be sent: ${error.message}`);
+    console.error("Detailed Nodemailer Error:", error);
+    throw new Error(`Email failure: ${error.message}`);
   }
 };
 
