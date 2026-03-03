@@ -14,7 +14,6 @@ const orderItemSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vendor",
       required: true,
-      index: true,
     },
 
     name: {
@@ -95,7 +94,6 @@ const orderItemSchema = new mongoose.Schema(
         "refunded",
       ],
       default: "pending",
-      index: true,
     },
 
     /* ================= STATUS HISTORY ================= */
@@ -200,7 +198,6 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "paid", "failed", "refunded"],
       default: "pending",
-      index: true,
     },
 
     paidAt: Date,
@@ -226,7 +223,6 @@ const orderSchema = new mongoose.Schema(
         "pending",
       ],
       default: "created",
-      index: true,
     },
     /* ================= COUPON (ORDER LEVEL) ================= */
     coupon: {

@@ -15,7 +15,6 @@ const productSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
-      index: true,
     },
 
     category: {
@@ -144,12 +143,12 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
     purposes: [
-  {
-    type: String,
-    enum: PURPOSES,
-    index: true,
-  },
-],
+      {
+        type: String,
+        enum: PURPOSES,
+        index: true,
+      },
+    ],
 
 
     /* ================= APPROVAL FLOW (BEST PRACTICE) ================= */

@@ -6,7 +6,6 @@ const withdrawalSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vendor",
       required: true,
-      index: true,
     },
 
     amount: {
