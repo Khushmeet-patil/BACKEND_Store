@@ -4,19 +4,22 @@ const logger = require("../logger");
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: process.env.EMAIL_PORT === "465",
+  secure: String(process.env.EMAIL_PORT) === "465",
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   tls: {
-    rejectUnauthorized: false // Helps with some certification issues on shared hosting
-  }
+    rejectUnauthorized: false
+  },
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
 });
 
 const sendEmail = async ({ to, subject, html }) => {
-  // Debug log (masked)
-  console.log(`Attempting to send email to ${to} using host ${process.env.EMAIL_HOST}`);
+  // Debug log
+  console.log(`Attempting to send email to ${to} using host ${process.env.EMAIL_HOST} on port ${process.env.EMAIL_PORT}`);
 
   try {
     const info = await transporter.sendMail({
