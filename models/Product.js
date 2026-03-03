@@ -188,7 +188,6 @@ productSchema.virtual("isVisible").get(function () {
 
 productSchema.index({ "approval.status": 1, status: 1 });
 productSchema.index({ category: 1, featured: 1 });
-productSchema.index({ slug: 1 });
 productSchema.index({
   name: "text",
   slug: "text",
