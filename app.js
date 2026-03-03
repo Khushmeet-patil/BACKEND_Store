@@ -23,6 +23,12 @@ app.use("/api/uploads", express.static("uploads"));
 app.use(corsOrigins);
 app.use(express.json());
 
+// 🔹 Request Logger (Debug)
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // 🔹 APIs
 app.use("/api/upload", uploadRoutes);
 app.use("/api/auth", authRoutes);
