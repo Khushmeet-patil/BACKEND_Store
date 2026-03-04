@@ -16,42 +16,51 @@ const transporter = nodemailer.createTransport({
     rejectUnauthorized: false,
     minVersion: "TLSv1.2"
   },
-  connectionTimeout: 15000, // Increased to 15s
-  greetingTimeout: 15000,
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
   socketTimeout: 15000,
 });
 
 const sendEmail = async ({ to, subject, html }) => {
-  console.log(`Email Debug: Host=${process.env.EMAIL_HOST}, Port=${port}, Secure=${secure}, User=${process.env.EMAIL_USER}`);
+  const host = process.env.EMAIL_HOST;
+  const user = process.env.EMAIL_USER;
+
+  console.log(`[SMTP DEBUG] Attempting connection: Host=${host}, Port=${port}, Secure=${secure}, User=${user}`);
 
   try {
-    // Verify connection before sending
+    // 1. Verify connectivity (fails here with timeout if blocked)
     await transporter.verify();
-    console.log("SMTP connection verified successfully");
+    console.log("[SMTP DEBUG] Connection verified.");
 
+    // 2. Send the mail
     const info = await transporter.sendMail({
-      from: `"${process.env.EMAIL_FROM || 'VedicStore'}" <${process.env.EMAIL_USER}>`,
+      from: `"${process.env.EMAIL_FROM || 'VedicStore'}" <${user}>`,
       to,
       subject,
       html,
     });
 
-    logger.info("Email sent successfully", {
-      to,
-      subject,
-      messageId: info.messageId,
-    });
-
+    logger.info("Email sent successfully", { to, messageId: info.messageId });
     return info;
+
   } catch (error) {
+    let advice = "";
+    if (error.code === 'ETIMEDOUT') {
+      advice = "Root Cause Found: Render's network is unable to reach Hostinger on this port. Try Port 587 or use a cloud-friendly SMTP provider like Brevo or SendGrid.";
+    }
+
+    console.error(`[SMTP ERROR] ${error.message}`);
+    if (advice) console.error(`[SMTP ADVICE] ${advice}`);
+
     logger.error("Email sending failed", {
       to,
       errorMessage: error.message,
       errorCode: error.code,
-      command: error.command
+      command: error.command,
+      advice
     });
-    console.error("Detailed Nodemailer Error:", error);
-    throw new Error(`Email failure: ${error.message}`);
+
+    throw new Error(`Email failure: ${error.message}. ${advice}`);
   }
 };
 
