@@ -111,13 +111,37 @@ exports.loginUser = async ({ email, password }) => {
 };
 
 exports.forgotPasswordService = async (email) => {
-  const user = await User.findOne({ email });
+  let user = await User.findOne({ email });
 
   if (!user) {
-    return {
-      success: true,
-      message: "If an account exists, a reset link has been sent",
-    };
+    // 🔍 Check if it's a pending vendor (who won't have a User record yet)
+    const pendingVendor = await Vendor.findOne({ storeEmail: email, status: "pending" });
+    if (pendingVendor) {
+      throw new Error("Your application is not approved yet.");
+    }
+
+    throw new Error("Register first");
+  }
+
+  // 🛑 VENDOR-SPECIFIC CHECKS (for users who ALREADY have a User record)
+  if (user.role === "vendor") {
+    const vendorProfile = await Vendor.findOne({ userId: user._id });
+
+    if (!vendorProfile) {
+      throw new Error("Register first");
+    }
+
+    if (vendorProfile.status === "pending") {
+      throw new Error("Your application is not approved yet.");
+    }
+
+    if (vendorProfile.status === "rejected") {
+      throw new Error("Your application has been rejected. Please contact support for more information.");
+    }
+
+    if (vendorProfile.status === "suspended") {
+      throw new Error("Your account has been suspended. Please contact support.");
+    }
   }
 
   const resetToken = crypto.randomBytes(32).toString("hex");
@@ -133,7 +157,7 @@ exports.forgotPasswordService = async (email) => {
 
   await user.save({ validateBeforeSave: false });
 
-  const resetUrl = `${process.env.FRONTEND_URL}/forget-password?query=${resetToken}`;
+  const resetUrl = `${process.env.FRONTEND_URL}/forget-password?token=${resetToken}`;
 
   await sendEmail({
     to: user.email,

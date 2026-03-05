@@ -141,19 +141,19 @@ exports.forgotPassword = async (req, res) => {
   } catch (error) {
     console.error("Forgot password error:", error);
 
-    return res.status(500).json({
+    return res.status(400).json({
       success: false,
-      message: "Error sending reset email",
+      message: error.message || "Error sending reset email",
     });
   }
 };
 
 exports.resetPassword = async (req, res) => {
   try {
-    const { query } = req.query;
+    const { token } = req.query;
     const { password } = req.body;
 
-    const result = await authService.resetPasswordService(query, password);
+    const result = await authService.resetPasswordService(token, password);
 
     if (!result.success) {
       return res.status(400).json(result);
@@ -163,9 +163,9 @@ exports.resetPassword = async (req, res) => {
   } catch (error) {
     console.error("Reset password error:", error);
 
-    res.status(500).json({
+    res.status(400).json({
       success: false,
-      message: "Something went wrong",
+      message: error.message || "Something went wrong",
     });
   }
 };
@@ -205,9 +205,9 @@ exports.resendSetPassword = async (req, res) => {
       error: error.message,
     });
 
-    return res.status(500).json({
+    return res.status(400).json({
       success: false,
-      message: "Unable to resend set password link",
+      message: error.message || "Unable to resend set password link",
     });
   }
 };
@@ -232,9 +232,9 @@ exports.setPassword = async (req, res) => {
 
     return res.status(200).json(result);
   } catch (error) {
-    return res.status(500).json({
+    return res.status(400).json({
       success: false,
-      message: "Something went wrong",
+      message: error.message || "Something went wrong",
     });
   }
 };
