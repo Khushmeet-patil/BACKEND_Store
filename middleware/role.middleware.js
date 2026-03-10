@@ -14,6 +14,7 @@ module.exports = (roles = []) => {
 
     // Check if user's role is allowed
     if (!roles.includes(req.user.role)) {
+      console.log(`🔴 [Role Middleware] 403 Forbidden: User ${req.user._id} (${req.user.role}) denied access. Allowed roles: [${roles.join(', ')}]`);
       return res.status(403).json({
         error: "Forbidden: insufficient permissions",
       });

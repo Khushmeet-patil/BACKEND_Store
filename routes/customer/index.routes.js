@@ -4,7 +4,7 @@ const auth = require("../../middleware/auth.middleware");
 const role = require("../../middleware/role.middleware");
 
 router.use(auth);
-router.use(role("customer"));
+router.use(role(["customer", "admin", "vendor"]));
 
 router.use("/address", require("../customer/address.routes"))
 router.use("/cart", require("../customer/cart.routes"))
