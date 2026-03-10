@@ -295,7 +295,7 @@ exports.getProductById = async (id) => {
 };
 
 /* ================= UPDATE PRODUCT (VENDOR) ================= */
-exports.updateProduct = async (id, data) => {
+exports.updateProduct = async (id, data, user = null) => {
   try {
     if (data.pricing) {
       data.pricing = calculatePricing(data.pricing);
@@ -321,7 +321,10 @@ exports.updateProduct = async (id, data) => {
       type: "product_update",
       title: "Product Updated",
       description: `Product "${product.name}" has been updated.`,
-      meta: {
+      role: user ? user.role : "vendor",
+      userId: user ? user._id : null,
+      vendorId: user && user.vendorId ? user.vendorId : (product.vendorId && product.vendorId._id ? product.vendorId._id : product.vendorId),
+      metadata: {
         productId: product._id,
       },
     });
@@ -339,7 +342,7 @@ exports.updateProduct = async (id, data) => {
 };
 
 /* ================= DELETE PRODUCT ================= */
-exports.deleteProduct = async (id) => {
+exports.deleteProduct = async (id, user = null) => {
   try {
     const product = await Product.findByIdAndDelete(id);
 
@@ -351,7 +354,10 @@ exports.deleteProduct = async (id) => {
       type: "product_delete",
       title: "Product Deleted",
       description: `Product "${product.name}" has been deleted.`,
-      meta: {
+      role: user ? user.role : "vendor",
+      userId: user ? user._id : null,
+      vendorId: user && user.vendorId ? user.vendorId : (product.vendorId && product.vendorId._id ? product.vendorId._id : product.vendorId),
+      metadata: {
         productId: product._id,
       },
     });

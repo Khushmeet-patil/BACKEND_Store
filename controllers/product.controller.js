@@ -125,7 +125,8 @@ exports.updateProduct = async (req, res) => {
   try {
     const product = await productService.updateProduct(
       req.params.id,
-      req.body
+      req.body,
+      req.user
     );
 
     return res.status(200).json({
@@ -149,7 +150,7 @@ exports.updateProduct = async (req, res) => {
 /* ================= DELETE PRODUCT ================= */
 exports.deleteProduct = async (req, res) => {
   try {
-    await productService.deleteProduct(req.params.id);
+    await productService.deleteProduct(req.params.id, req.user);
 
     return res.status(200).json({
       success: true,
