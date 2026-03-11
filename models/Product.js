@@ -105,6 +105,7 @@ const productSchema = new mongoose.Schema(
     planet: [String],
     benefits: [String],
     whoShouldUse: String,
+    tags: [String],
 
     /* ================= GEMSTONE / ITEM DETAILS ================= */
     material: String,

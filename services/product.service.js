@@ -478,7 +478,11 @@ exports.myProduct = async (vendorId, options = {}) => {
     }
 
     if (search) {
-      matchQuery.name = { $regex: search, $options: "i" };
+      matchQuery.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { tags: { $regex: search, $options: "i" } },
+        { sku: { $regex: search, $options: "i" } },
+      ];
     }
 
     const skip = (page - 1) * limit;
