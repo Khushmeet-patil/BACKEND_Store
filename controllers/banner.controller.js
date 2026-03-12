@@ -20,7 +20,12 @@ exports.createBanner = async (req, res) => {
 /* ================= GET ALL (Admin) ================= */
 exports.getAllBanners = async (req, res) => {
   try {
-    const banners = await bannerService.getAllBanners();
+    const { type, category } = req.query;
+    const filters = {};
+    if (type) filters.type = type;
+    if (category) filters.category = category;
+
+    const banners = await bannerService.getAllBanners(filters);
     res.json({ success: true, data: banners });
   } catch (error) {
     res.status(500).json({
@@ -33,7 +38,12 @@ exports.getAllBanners = async (req, res) => {
 /* ================= GET ACTIVE (Public) ================= */
 exports.getActiveBanners = async (req, res) => {
   try {
-    const banners = await bannerService.getActiveBanners();
+    const { type, category } = req.query;
+    const filters = {};
+    if (type) filters.type = type;
+    if (category) filters.category = category;
+
+    const banners = await bannerService.getActiveBanners(filters);
     res.json({ success: true, data: banners });
   } catch (error) {
     res.status(500).json({

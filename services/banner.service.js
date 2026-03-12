@@ -6,13 +6,13 @@ const createBanner = async (data) => {
 };
 
 /* ================= GET ALL (Admin) ================= */
-const getAllBanners = async () => {
-  return Banner.find().sort({ createdAt: -1 });
+const getAllBanners = async (filters = {}) => {
+  return Banner.find(filters).sort({ createdAt: -1 });
 };
 
 /* ================= GET ACTIVE (Public) ================= */
-const getActiveBanners = async () => {
-  return Banner.find({ isActive: true }).sort({ createdAt: -1 });
+const getActiveBanners = async (filters = {}) => {
+  return Banner.find({ ...filters, isActive: true }).sort({ createdAt: -1 });
 };
 
 /* ================= UPDATE STATUS ================= */

@@ -7,6 +7,15 @@ const bannerSchema = new mongoose.Schema(
       required: true,
     },
 
+    category: {
+      type: String,
+      default: null,
+    },
+    type: {
+      type: String,
+      enum: ["main", "contextual"],
+      default: "main",
+    },
     isActive: {
       type: Boolean,
       default: true,
