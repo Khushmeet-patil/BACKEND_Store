@@ -130,15 +130,23 @@ exports.getProducts = async (filters = {}) => {
   if (filters.search) {
     const searchTerm = filters.search.trim();
     const safeRegex = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const numericSearch = !isNaN(searchTerm) ? Number(searchTerm) : null;
 
-    // --- Build regex match for partial/tag matches ---
+    // --- Build regex match for various fields ---
+    const matchConditions = [
+      { name: { $regex: safeRegex, $options: "i" } },
+      { tags: { $regex: safeRegex, $options: "i" } },
+      { purposes: { $regex: safeRegex, $options: "i" } },
+      { shortDescription: { $regex: safeRegex, $options: "i" } },
+    ];
+
+    if (numericSearch !== null) {
+      matchConditions.push({ "pricing.finalPrice": numericSearch });
+    }
+
     const regexMatchQuery = {
       ...matchQuery,
-      $or: [
-        { name: { $regex: safeRegex, $options: "i" } },
-        { tags: { $regex: safeRegex, $options: "i" } },
-        { shortDescription: { $regex: safeRegex, $options: "i" } },
-      ],
+      $or: matchConditions,
     };
 
     // Common pipeline stages for ratings
@@ -178,24 +186,82 @@ exports.getProducts = async (filters = {}) => {
 
     // Run both queries in parallel
     const [matchedProducts, allProducts] = await Promise.all([
-      // 1) Products matching the search (sorted by name-match priority)
+      // 1) Products matching the search (weighted ranking)
       Product.aggregate([
         { $match: regexMatchQuery },
         ...ratingStages,
         {
           $addFields: {
             _searchRank: {
-              $cond: [
-                {
-                  $regexMatch: {
-                    input: "$name",
-                    regex: safeRegex,
-                    options: "i",
+              $switch: {
+                branches: [
+                  {
+                    case: {
+                      $regexMatch: {
+                        input: "$name",
+                        regex: safeRegex,
+                        options: "i",
+                      },
+                    },
+                    then: 0, // Name match (Highest)
                   },
-                },
-                0, // name match → highest priority
-                1, // tag/description match → lower priority
-              ],
+                  {
+                    case: {
+                      $or: [
+                        {
+                          $gt: [
+                            {
+                              $size: {
+                                $filter: {
+                                  input: { $ifNull: ["$tags", []] },
+                                  as: "t",
+                                  cond: {
+                                    $regexMatch: {
+                                      input: "$$t",
+                                      regex: safeRegex,
+                                      options: "i",
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                        {
+                          $gt: [
+                            {
+                              $size: {
+                                $filter: {
+                                  input: { $ifNull: ["$purposes", []] },
+                                  as: "p",
+                                  cond: {
+                                    $regexMatch: {
+                                      input: "$$p",
+                                      regex: safeRegex,
+                                      options: "i",
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                            0,
+                          ],
+                        },
+                      ],
+                    },
+                    then: 1, // Tag/Purpose match (High)
+                  },
+                  {
+                    case:
+                      numericSearch !== null
+                        ? { $eq: ["$pricing.finalPrice", numericSearch] }
+                        : false,
+                    then: 2, // Price match (Medium)
+                  },
+                ],
+                default: 3, // Description match etc. (Low)
+              },
             },
           },
         },
