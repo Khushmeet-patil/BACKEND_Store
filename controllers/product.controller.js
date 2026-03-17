@@ -36,10 +36,16 @@ exports.getProducts = async (req, res) => {
       vendorId,
       featured,
       approvalStatus,
-      purposes
+      purposes,
+      search
     } = req.query;
 
     const filters = {};
+
+    /* ================= SEARCH ================= */
+    if (search) {
+      filters.search = search;
+    }
 
     /* ================= CATEGORY ================= */
     if (categoryId) {

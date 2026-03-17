@@ -124,6 +124,105 @@ exports.getProducts = async (filters = {}) => {
     }
   }
 
+  /* =========================================================
+     🔍 SEARCH — relevant products first, then all others
+     ========================================================= */
+  if (filters.search) {
+    const searchTerm = filters.search.trim();
+    const safeRegex = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // --- Build regex match for partial/tag matches ---
+    const regexMatchQuery = {
+      ...matchQuery,
+      $or: [
+        { name: { $regex: safeRegex, $options: "i" } },
+        { tags: { $regex: safeRegex, $options: "i" } },
+        { shortDescription: { $regex: safeRegex, $options: "i" } },
+      ],
+    };
+
+    // Common pipeline stages for ratings
+    const ratingStages = [
+      {
+        $lookup: {
+          from: "ratings",
+          localField: "_id",
+          foreignField: "productId",
+          as: "ratings",
+        },
+      },
+      {
+        $addFields: {
+          activeRatings: {
+            $filter: {
+              input: "$ratings",
+              as: "r",
+              cond: { $eq: ["$$r.isActive", true] },
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          averageRating: { $avg: "$activeRatings.rating" },
+          totalRatings: { $size: "$activeRatings" },
+        },
+      },
+      {
+        $project: {
+          ratings: 0,
+          activeRatings: 0,
+        },
+      },
+    ];
+
+    // Run both queries in parallel
+    const [matchedProducts, allProducts] = await Promise.all([
+      // 1) Products matching the search (sorted by name-match priority)
+      Product.aggregate([
+        { $match: regexMatchQuery },
+        ...ratingStages,
+        {
+          $addFields: {
+            _searchRank: {
+              $cond: [
+                {
+                  $regexMatch: {
+                    input: "$name",
+                    regex: safeRegex,
+                    options: "i",
+                  },
+                },
+                0, // name match → highest priority
+                1, // tag/description match → lower priority
+              ],
+            },
+          },
+        },
+        { $sort: { _searchRank: 1, createdAt: -1 } },
+        { $project: { _searchRank: 0 } },
+      ]),
+
+      // 2) All products (for the "rest" section)
+      Product.aggregate([
+        { $match: matchQuery },
+        ...ratingStages,
+        { $sort: { createdAt: -1 } },
+      ]),
+    ]);
+
+    // Merge: matched first, then remaining (deduplicated)
+    const matchedIds = new Set(matchedProducts.map((p) => p._id.toString()));
+    const remaining = allProducts.filter(
+      (p) => !matchedIds.has(p._id.toString())
+    );
+
+    return [...matchedProducts, ...remaining];
+  }
+
+  /* =========================================================
+     DEFAULT — no search, return all products by date
+     ========================================================= */
   return await Product.aggregate([
     { $match: matchQuery },
 
