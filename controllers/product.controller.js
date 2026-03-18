@@ -37,10 +37,20 @@ exports.getProducts = async (req, res) => {
       featured,
       approvalStatus,
       purposes,
-      search
+      search,
+      minPrice,
+      maxPrice,
+      minRating,
+      sort
     } = req.query;
 
     const filters = {};
+
+    /* ================= PRICE & RATINGS & SORT ================= */
+    if (minPrice !== undefined) filters.minPrice = minPrice;
+    if (maxPrice !== undefined) filters.maxPrice = maxPrice;
+    if (minRating !== undefined) filters.minRating = minRating;
+    if (sort) filters.sort = sort;
 
     /* ================= SEARCH ================= */
     if (search) {

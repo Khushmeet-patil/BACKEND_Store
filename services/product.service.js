@@ -86,6 +86,13 @@ exports.getProducts = async (filters = {}) => {
     matchQuery.category = new mongoose.Types.ObjectId(filters.category);
   }
 
+  /* ================= PRICE FILTER ================= */
+  if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+    matchQuery["pricing.finalPrice"] = {};
+    if (filters.minPrice !== undefined) matchQuery["pricing.finalPrice"].$gte = Number(filters.minPrice);
+    if (filters.maxPrice !== undefined) matchQuery["pricing.finalPrice"].$lte = Number(filters.maxPrice);
+  }
+
   if (filters.vendorId) {
     matchQuery.vendorId = new mongoose.Types.ObjectId(filters.vendorId);
   }
@@ -182,6 +189,15 @@ exports.getProducts = async (filters = {}) => {
           activeRatings: 0,
         },
       },
+      ...(filters.minRating
+        ? [
+            {
+              $match: {
+                averageRating: { $gte: Number(filters.minRating) },
+              },
+            },
+          ]
+        : []),
     ];
 
     // Run both queries in parallel
@@ -283,7 +299,18 @@ exports.getProducts = async (filters = {}) => {
       (p) => !matchedIds.has(p._id.toString())
     );
 
-    return [...matchedProducts, ...remaining];
+    let result = [...matchedProducts, ...remaining];
+
+    /* ================= APPLY SORTING ================= */
+    if (filters.sort === "price_asc") {
+      result.sort((a, b) => (a.pricing?.finalPrice || 0) - (b.pricing?.finalPrice || 0));
+    } else if (filters.sort === "price_desc") {
+      result.sort((a, b) => (b.pricing?.finalPrice || 0) - (a.pricing?.finalPrice || 0));
+    } else if (filters.sort === "newest") {
+      result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    return result;
   }
 
   /* =========================================================
@@ -326,8 +353,24 @@ exports.getProducts = async (filters = {}) => {
         activeRatings: 0,
       },
     },
+    ...(filters.minRating
+      ? [
+          {
+            $match: {
+              averageRating: { $gte: Number(filters.minRating) },
+            },
+          },
+        ]
+      : []),
 
-    { $sort: { createdAt: -1 } },
+    {
+      $sort: (() => {
+        if (filters.sort === "price_asc") return { "pricing.finalPrice": 1 };
+        if (filters.sort === "price_desc") return { "pricing.finalPrice": -1 };
+        if (filters.sort === "popularity") return { totalRatings: -1, averageRating: -1 };
+        return { createdAt: -1 }; // default handles "newest" and others
+      })(),
+    },
   ]);
 };
 
