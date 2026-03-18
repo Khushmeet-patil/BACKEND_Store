@@ -2,7 +2,7 @@ const searchService = require("../services/search.service");
 
 exports.searchProducts = async (req, res) => {
   try {
-    const { q, categoryId, minPrice, maxPrice, page, limit } = req.query;
+    const { q, categoryId, minPrice, maxPrice, page, limit, sort } = req.query;
 
     const result = await searchService.searchProducts({
       keyword: q,
@@ -11,6 +11,7 @@ exports.searchProducts = async (req, res) => {
       maxPrice,
       page: Number(page) || 1,
       limit: Number(limit) || 12,
+      sort,
     });
 
     return res.status(200).json({

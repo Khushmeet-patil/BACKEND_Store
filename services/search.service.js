@@ -9,6 +9,7 @@ exports.searchProducts = async ({
   maxPrice,
   page = 1,
   limit = 12,
+  sort,
 }) => {
   const matchQuery = {
     status: true,
@@ -38,9 +39,14 @@ exports.searchProducts = async ({
       ? [{ $addFields: { score: { $meta: "textScore" } } }]
       : []),
 
-    ...(keyword
-      ? [{ $sort: { score: -1 } }]
-      : [{ $sort: { createdAt: -1 } }]),
+    {
+      $sort: (() => {
+        if (sort === "price_asc") return { "pricing.finalPrice": 1 };
+        if (sort === "price_desc") return { "pricing.finalPrice": -1 };
+        if (keyword) return { score: -1 };
+        return { createdAt: -1 };
+      })(),
+    },
 
     { $skip: skip },
     { $limit: limit },
