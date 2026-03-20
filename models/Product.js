@@ -112,6 +112,21 @@ const productSchema = new mongoose.Schema(
     weight: String,
     size: String,
 
+    /* ================= VARIANTS ================= */
+    variants: [
+      {
+        size: {
+          type: String,
+          required: true,
+        },
+        stock: {
+          type: Number,
+          default: 0,
+          min: 0,
+        },
+      },
+    ],
+
     certified: {
       type: Boolean,
       default: false,

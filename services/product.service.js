@@ -51,6 +51,11 @@ exports.createProduct = async ({ productData, userId, vendorId }) => {
     productData.vendorId = vendorId;
     productData.approval = { status: "pending" };
 
+    if (productData.variants && productData.variants.length > 0) {
+      productData.stock = productData.variants.reduce((total, v) => total + v.stock, 0);
+      productData.inStock = productData.stock > 0;
+    }
+
     const product = await Product.create(productData);
 
     // ✅ ACTIVITY LOG (SERVICE LAYER)
@@ -507,6 +512,11 @@ exports.updateProduct = async (id, data, user = null) => {
   try {
     if (data.pricing) {
       data.pricing = calculatePricing(data.pricing);
+    }
+
+    if (data.variants && data.variants.length > 0) {
+      data.stock = data.variants.reduce((total, v) => total + v.stock, 0);
+      data.inStock = data.stock > 0;
     }
 
     // If vendor edits rejected product → send back to pending
