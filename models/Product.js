@@ -113,6 +113,10 @@ const productSchema = new mongoose.Schema(
     size: String,
 
     /* ================= VARIANTS ================= */
+    variantName: {
+      type: String,
+      default: "Size",
+    },
     variants: [
       {
         size: {
