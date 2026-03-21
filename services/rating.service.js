@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Rating = require("../models/Rating");
 const Product = require("../models/Product");
+const Order = require("../models/Order");
 
 /* ======================================================
    CREATE / UPDATE RATING (USER)
@@ -12,6 +13,12 @@ exports.createOrUpdateRating = async ({
   review,
   images = [],
 }) => {
+  // 🔹 Check if user has purchased the product (delivered)
+  const canReview = await exports.canUserReviewProduct(productId, userId);
+  if (!canReview) {
+    throw new Error("You can only review products you have purchased and received.");
+  }
+
   if (!productId || !userId || !rating) {
     throw new Error("Missing required fields");
   }
@@ -189,5 +196,20 @@ exports.getAllRatingsForAdmin = async ({
       totalItems: total,
     },
   };
+};
+
+/* ======================================================
+   CHECK IF USER CAN REVIEW (DELIVERED ORDER)
+====================================================== */
+exports.canUserReviewProduct = async (productId, userId) => {
+  if (!productId || !userId) return false;
+
+  const order = await Order.findOne({
+    customerId: userId,
+    "items.productId": productId,
+    "items.status": "delivered",
+  });
+
+  return !!order;
 };
 

@@ -186,6 +186,18 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0, // days
     },
+    returnPolicy: {
+      type: Boolean,
+      default: false,
+    },
+    returnDays: {
+      type: Number,
+      default: 7, // days
+    },
+    xRayTested: {
+      type: Boolean,
+      default: false
+    },
 
     /* ================= FLAGS ================= */
     featured: {

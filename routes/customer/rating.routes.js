@@ -8,4 +8,9 @@ router.post(
   ratingController.addRating
 );
 
+router.get(
+  "/can-review/:productId",
+  ratingController.checkReviewEligibility
+);
+
 module.exports = router;

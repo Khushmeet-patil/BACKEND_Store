@@ -212,3 +212,32 @@ exports.getVendorRatings = async (req, res) => {
     });
   }
 };
+
+/* ======================================================
+   CHECK IF USER CAN REVIEW (DELIVERED ORDER)
+====================================================== */
+exports.checkReviewEligibility = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const userId = req.user._id;
+
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID is required",
+      });
+    }
+
+    const canReview = await ratingService.canUserReviewProduct(productId, userId);
+
+    return res.status(200).json({
+      success: true,
+      canReview,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to check eligibility",
+    });
+  }
+};
