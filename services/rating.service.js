@@ -169,7 +169,7 @@ exports.getVendorRatings = async (vendorId) => {
 ====================================================== */
 exports.getAllRatingsForAdmin = async ({
   page = 1,
-  limit = 10,
+  limit = 1000,
   isActive,
 } = {}) => {   // 👈 THIS FIX
   const query = {};
