@@ -12,15 +12,25 @@ const ratingSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: function() { return !this.isManual; },
       index: true,
     },
 
     vendorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vendor",
-      required: true,
+      required: function() { return !this.isManual; },
       index: true,
+    },
+
+    isManual: {
+      type: Boolean,
+      default: false,
+    },
+
+    manualUserName: {
+      type: String,
+      trim: true,
     },
 
     rating: {
@@ -55,6 +65,9 @@ const ratingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-ratingSchema.index({ productId: 1, userId: 1 }, { unique: true });
+ratingSchema.index({ productId: 1, userId: 1 }, { 
+  unique: true, 
+  partialFilterExpression: { isManual: false } 
+});
 
 module.exports = mongoose.model("Rating", ratingSchema);

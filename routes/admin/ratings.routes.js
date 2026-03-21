@@ -1,7 +1,9 @@
-const express = require("express")
-const { getRatingsByUserAdmin } = require("../../controllers/rating.controller")
-const router = express.Router()
+const express = require("express");
+const router = express.Router();
+const ratingController = require("../../controllers/rating.controller");
 
-router.get("/", getRatingsByUserAdmin)
+router.post("/manual", ratingController.addManualRating);
+router.get("/", ratingController.getAllRatingsForAdmin);
+router.delete("/:ratingId", ratingController.deleteRatingByAdmin);
 
-module.exports = router
+module.exports = router;

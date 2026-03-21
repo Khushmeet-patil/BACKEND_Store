@@ -241,3 +241,38 @@ exports.checkReviewEligibility = async (req, res) => {
     });
   }
 };
+/* ======================================================
+   ADD MANUAL RATING (ADMIN)
+====================================================== */
+exports.addManualRating = async (req, res) => {
+  try {
+    const { productId, rating, review, manualUserName } = req.body;
+
+    if (!productId || !rating || !manualUserName) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID, rating, and user name are required",
+      });
+    }
+
+    const result = await ratingService.createManualRating({
+      productId,
+      rating,
+      review,
+      manualUserName
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Manual rating added successfully",
+      rating: result,
+    });
+  } catch (error) {
+    console.error("Add manual rating error:", error);
+
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Failed to add manual rating",
+    });
+  }
+};

@@ -213,3 +213,38 @@ exports.canUserReviewProduct = async (productId, userId) => {
   return !!order;
 };
 
+/* ======================================================
+   CREATE MANUAL RATING (ADMIN)
+====================================================== */
+exports.createManualRating = async ({
+  productId,
+  rating,
+  review,
+  manualUserName,
+}) => {
+  if (!productId || !rating || !manualUserName) {
+    throw new Error("Missing required fields");
+  }
+
+  if (rating < 1 || rating > 5) {
+    throw new Error("Rating must be between 1 and 5");
+  }
+
+  const product = await Product.findById(productId).select("vendorId");
+
+  if (!product) {
+    throw new Error("Product not found");
+  }
+
+  const result = await Rating.create({
+    productId,
+    vendorId: product.vendorId,
+    rating,
+    review,
+    isManual: true,
+    manualUserName,
+    isActive: true,
+  });
+
+  return result;
+};
