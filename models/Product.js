@@ -130,6 +130,45 @@ const productSchema = new mongoose.Schema(
         },
       },
     ],
+    specifications: [
+      {
+        key: { type: String, trim: true },
+        value: { type: String, trim: true },
+      },
+    ],
+    detailedInfo: {
+      benefits: {
+        content: { type: String, default: "" },
+        show: { type: Boolean, default: false }
+      },
+      howToWear: {
+        content: { type: String, default: "" },
+        show: { type: Boolean, default: false }
+      },
+      bestDayToWear: {
+        content: { type: String, default: "" },
+        show: { type: Boolean, default: false }
+      },
+      mythology: {
+        content: { type: String, default: "" },
+        show: { type: Boolean, default: false }
+      },
+      careInstructions: {
+        content: { type: String, default: "" },
+        show: { type: Boolean, default: false }
+      },
+      returnsExchange: {
+        content: { type: String, default: "" },
+        show: { type: Boolean, default: false }
+      },
+      customSections: [
+        {
+          title: { type: String, required: true },
+          content: { type: String, required: true },
+          show: { type: Boolean, default: true }
+        }
+      ]
+    },
 
     certified: {
       type: Boolean,
