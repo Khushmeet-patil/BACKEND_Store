@@ -518,7 +518,26 @@ exports.verifyPaymentAndCreateOrder = async ({
     });
   }
 
-  await Cart.findOneAndUpdate({ userId: customerId }, { $set: { items: [] } });
+  /* ✅ REMOVE ONLY PURCHASED ITEMS FROM CART & UPDATE TOTALS */
+  const productIdsToRemove = items.map((i) => i.productId.toString());
+  const cart = await Cart.findOne({ userId: customerId });
+  if (cart) {
+    cart.items = cart.items.filter(
+      (item) => !productIdsToRemove.includes(item.productId.toString())
+    );
+    
+    // Recalculate totals
+    let subtotal = 0;
+    let totalItems = 0;
+    cart.items.forEach((item) => {
+      subtotal += (item.priceAtAdd || 0) * item.quantity;
+      totalItems += item.quantity;
+    });
+    cart.subtotal = subtotal;
+    cart.totalItems = totalItems;
+    
+    await cart.save();
+  }
 
   /* ✅ SEND VENDOR EMAILS */
   for (const [email, data] of Object.entries(vendorMap)) {

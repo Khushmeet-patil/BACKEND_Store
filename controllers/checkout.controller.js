@@ -2,13 +2,14 @@ const checkoutService = require("../services/checkout.service");
 
 exports.cartCheckout = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { couponCode, shippingAddress } = req.body;
+    const userId = req.user._id;
+    const { couponCode, shippingAddress, selectedItems } = req.body;
 
     const result = await checkoutService.cartCheckout({
       userId,
       couponCode,
       shippingAddress,
+      selectedItems,
     });
 
     res.status(200).json({
@@ -44,7 +45,7 @@ exports.buyNowCheckout = async (req, res) => {
 
 exports.getCheckoutSummary = async (req, res) => {
   const userId = req.user._id;
-  const { type, productId, quantity, couponCode } = req.body;
+  const { type, productId, quantity, couponCode, selectedItems } = req.body;
 
   let summary;
 
@@ -59,6 +60,7 @@ exports.getCheckoutSummary = async (req, res) => {
     summary = await checkoutService.cartSummary({
       userId,
       couponCode,
+      selectedItems,
     });
   }
 

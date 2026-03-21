@@ -57,16 +57,16 @@ exports.getWishlist = async (userId) => {
         from: "products",
         localField: "productId",
         foreignField: "_id",
-        as: "product",
+        as: "productId",
       },
     },
-    { $unwind: "$product" },
+    { $unwind: "$productId" },
 
     /* 🔐 Only visible products */
     {
       $match: {
-        "product.status": true,
-        "product.approval.status": "approved",
+        "productId.status": true,
+        "productId.approval.status": "approved",
       },
     },
 
@@ -74,7 +74,7 @@ exports.getWishlist = async (userId) => {
     {
       $lookup: {
         from: "ratings",
-        localField: "product._id",
+        localField: "productId._id",
         foreignField: "productId",
         as: "ratings",
       },
@@ -82,8 +82,8 @@ exports.getWishlist = async (userId) => {
 
     {
       $addFields: {
-        "product.averageRating": { $avg: "$ratings.rating" },
-        "product.ratingCount": { $size: "$ratings" },
+        "productId.averageRating": { $avg: "$ratings.rating" },
+        "productId.ratingCount": { $size: "$ratings" },
       },
     },
 

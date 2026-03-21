@@ -4,17 +4,26 @@ const Order = require("../models/Order");
 const Coupon = require("../models/Coupon");
 const { createOrder } = require("./order.service");
 
-exports.cartCheckout = async ({ userId, couponCode, shippingAddress }) => {
+exports.cartCheckout = async ({ userId, couponCode, shippingAddress, selectedItems }) => {
   const cart = await Cart.findOne({ userId });
 
   if (!cart || cart.items.length === 0) {
     throw new Error("Cart is empty");
   }
 
+  // 🔥 FILTER SELECTED ITEMS
+  const filteredCartItems = selectedItems && selectedItems.length > 0
+    ? cart.items.filter(item => selectedItems.includes(item.productId.toString()))
+    : cart.items;
+
+  if (filteredCartItems.length === 0) {
+    throw new Error("No selected items to checkout");
+  }
+
   let subtotal = 0;
   const items = [];
 
-  for (const item of cart.items) {
+  for (const item of filteredCartItems) {
     const product = await Product.findById(item.productId);
 
     if (!product) continue;
@@ -136,15 +145,33 @@ exports.buyNowSummary = async ({
   };
 };
 
-exports.cartSummary = async ({ userId, couponCode }) => {
+exports.cartSummary = async ({ userId, couponCode, selectedItems }) => {
   const cart = await Cart.findOne({ userId }).populate("items.productId");
   if (!cart || cart.items.length === 0) {
     throw new Error("Cart is empty");
   }
 
+  // 🔥 FILTER SELECTED ITEMS
+  const filteredCartItems = selectedItems && selectedItems.length > 0
+    ? cart.items.filter(item => {
+        const id = item.productId._id || item.productId;
+        return selectedItems.includes(id.toString());
+      })
+    : cart.items;
+
+  if (filteredCartItems.length === 0) {
+    return {
+      subtotal: 0,
+      discount: 0,
+      tax: 0,
+      shippingFee: 0,
+      totalAmount: 0,
+    };
+  }
+
   let subtotal = 0;
 
-  for (const item of cart.items) {
+  for (const item of filteredCartItems) {
     subtotal += item.productId.pricing.finalPrice * item.quantity;
   }
 
