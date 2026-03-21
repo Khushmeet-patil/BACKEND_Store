@@ -174,15 +174,17 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-
-    energized: {
-      type: Boolean,
-      default: false,
+    certificateImage: {
+      type: String,
+      default: null,
     },
-
-    pujaIncluded: {
+    freeDelivery: {
       type: Boolean,
-      default: false,
+      default: true,
+    },
+    fastDelivery: {
+      type: Number,
+      default: 0, // days
     },
 
     /* ================= FLAGS ================= */
