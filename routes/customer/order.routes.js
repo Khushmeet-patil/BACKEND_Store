@@ -5,7 +5,7 @@ const auth = require("../../middleware/auth.middleware");
 const authorize = require("../../middleware/role.middleware");
 
 /* ================= CUSTOMER ================= */
-// router.post("/create", controller.createOrder);
+router.post("/create", auth, controller.createOrder);
 router.post("/initiate-payment", controller.initiatePayment);
 router.post("/verify-payment", controller.verifyPaymentAndCreateOrder);
 router.get("/my", controller.myOrders);

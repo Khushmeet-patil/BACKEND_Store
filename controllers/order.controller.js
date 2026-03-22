@@ -24,6 +24,26 @@ exports.initiatePayment = async (req, res) => {
   }
 };
 
+/* ================= CREATE ORDER (Direct/COD) ================= */
+exports.createOrder = async (req, res) => {
+  try {
+    const { order } = await orderService.createOrder({
+      customerId: req.user._id,
+      ...req.body,
+    });
+
+    return res.status(201).json({
+      success: true,
+      order,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 /* ================= VERIFY PAYMENT & CREATE ORDER ================= */
 exports.verifyPaymentAndCreateOrder = async (req, res) => {
   try {
