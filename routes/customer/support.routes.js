@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const { submitReturnRequest, submitReportIssue } = require("../../controllers/customer.support.controller");
+const customerSupportController = require("../../controllers/customer.support.controller");
+const { protect } = require("../../middleware/auth.middleware");
 
-router.post("/return", submitReturnRequest);
-router.post("/report", submitReportIssue);
+router.post("/return", protect, customerSupportController.submitReturnRequest);
+router.post("/report", protect, customerSupportController.submitReportIssue);
+router.get("/return/:orderId", protect, customerSupportController.getReturnByOrder);
 
 module.exports = router;

@@ -59,3 +59,21 @@ exports.submitReportIssue = async (req, res) => {
   }
 };
 
+exports.getReturnByOrder = async (req, res) => {
+  try {
+    const returnRequest = await Return.findOne({
+      orderId: req.params.orderId,
+      customerId: req.user._id,
+    }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: returnRequest,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
