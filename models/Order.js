@@ -189,7 +189,7 @@ const orderSchema = new mongoose.Schema(
     /* ================= PAYMENT ================= */
     paymentMethod: {
       type: String,
-      enum: ["razorpay", "cod"],
+      enum: ["razorpay", "cod", "RAZORPAY", "COD"],
       default: "razorpay",
     },
 
