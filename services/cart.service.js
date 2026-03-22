@@ -17,9 +17,10 @@ const recalculateCart = (cart) => {
 
 /* ================= GET CART ================= */
 exports.getCart = async (userId) => {
-  let cart = await Cart.findOne({ userId }).populate(
-    "items.productId"
-  );
+  let cart = await Cart.findOne({ userId }).populate({
+    path: "items.productId",
+    populate: { path: "category", select: "name" }
+  });
 
   if (!cart) {
     cart = await Cart.create({ userId, items: [] });

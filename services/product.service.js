@@ -165,6 +165,20 @@ exports.getProducts = async (filters = {}) => {
     const ratingStages = [
       {
         $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: {
+          path: "$category",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
           from: "ratings",
           localField: "_id",
           foreignField: "productId",
@@ -324,6 +338,20 @@ exports.getProducts = async (filters = {}) => {
   return await Product.aggregate([
     { $match: matchQuery },
 
+    {
+      $lookup: {
+        from: "categories",
+        localField: "category",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    {
+      $unwind: {
+        path: "$category",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
     {
       $lookup: {
         from: "ratings",
