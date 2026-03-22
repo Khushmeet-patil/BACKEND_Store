@@ -117,12 +117,16 @@ exports.buyNowSummary = async ({
   const product = await Product.findById(productId);
   if (!product) throw new Error("Product not found");
 
-  const basePriceTotal = (product.pricing.basePrice || product.pricing.finalPrice) * quantity;
+  const basePrice = product.pricing.basePrice || product.pricing.finalPrice;
+  const gstRate = product.pricing.gstRate || 0;
+  
+  // MRP including GST
+  const mrpPerUnitInclGst = basePrice + (basePrice * gstRate / 100);
+  const totalMRP = mrpPerUnitInclGst * quantity;
+
   const finalPriceTotal = product.pricing.finalPrice * quantity;
-  const productDiscount = basePriceTotal - finalPriceTotal;
 
   let couponDiscount = 0;
-
   if (couponCode) {
     const coupon = await Coupon.findOne({ code: couponCode, isActive: true });
     if (!coupon) throw new Error("Invalid coupon");
@@ -133,13 +137,12 @@ exports.buyNowSummary = async ({
         : coupon.discountValue;
   }
 
-  const tax = 0;
+  const tax = 0; // Tax is now bundled in MRP and finalPrice
   const shippingFee = 0;
   const platformFee = 20;
   
-  const totalMRP = basePriceTotal;
-  const discount = productDiscount + couponDiscount;
-  const totalAmount = finalPriceTotal - couponDiscount + tax + shippingFee + platformFee;
+  const totalAmount = finalPriceTotal - couponDiscount + platformFee;
+  const discount = totalMRP - finalPriceTotal + couponDiscount;
 
   return {
     totalMRP,
@@ -178,13 +181,16 @@ exports.cartSummary = async ({ userId, couponCode, selectedItems }) => {
   }
 
   let totalMRP = 0;
-  let subtotal = 0;
+  let finalPriceSum = 0;
 
   for (const item of filteredCartItems) {
     if (!item.productId) continue;
-    const basePrice = item.productId.pricing.basePrice || item.productId.pricing.finalPrice;
-    totalMRP += basePrice * item.quantity;
-    subtotal += item.productId.pricing.finalPrice * item.quantity;
+    const base = item.productId.pricing.basePrice || item.productId.pricing.finalPrice;
+    const gstRate = item.productId.pricing.gstRate || 0;
+    
+    const mrpInclGst = base + (base * gstRate / 100);
+    totalMRP += mrpInclGst * item.quantity;
+    finalPriceSum += item.productId.pricing.finalPrice * item.quantity;
   }
 
   let couponDiscount = 0;
@@ -195,15 +201,15 @@ exports.cartSummary = async ({ userId, couponCode, selectedItems }) => {
 
     couponDiscount =
       coupon.discountType === "percentage"
-        ? (subtotal * coupon.discountValue) / 100
+        ? (finalPriceSum * coupon.discountValue) / 100
         : coupon.discountValue;
   }
 
   const tax = 0;
   const shippingFee = 0;
   const platformFee = 20;
-  const discount = (totalMRP - subtotal) + couponDiscount;
-  const totalAmount = subtotal - couponDiscount + tax + shippingFee + platformFee;
+  const totalAmount = finalPriceSum - couponDiscount + platformFee;
+  const discount = totalMRP - finalPriceSum + couponDiscount;
 
   return {
     totalMRP,
