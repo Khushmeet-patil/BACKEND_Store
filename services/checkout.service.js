@@ -117,12 +117,8 @@ exports.buyNowSummary = async ({
   const product = await Product.findById(productId);
   if (!product) throw new Error("Product not found");
 
-  const basePrice = product.pricing.basePrice || product.pricing.finalPrice;
-  const gstRate = product.pricing.gstRate || 0;
-  
-  // MRP including GST
-  const mrpPerUnitInclGst = basePrice + (basePrice * gstRate / 100);
-  const totalMRP = mrpPerUnitInclGst * quantity;
+  const mrp = product.pricing.mrp || product.pricing.basePrice || product.pricing.finalPrice;
+  const totalMRP = mrp * quantity;
 
   const finalPriceTotal = product.pricing.finalPrice * quantity;
 
@@ -216,6 +212,6 @@ exports.cartSummary = async ({ userId, couponCode, selectedItems }) => {
     shippingFee,
     platformFee,
     totalAmount,
-    subtotal
+    subtotal: finalPriceSum
   };
 };
