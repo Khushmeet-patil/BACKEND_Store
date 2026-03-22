@@ -590,11 +590,25 @@ exports.updateProduct = async (id, data, user = null) => {
 /* ================= DELETE PRODUCT ================= */
 exports.deleteProduct = async (id, user = null) => {
   try {
-    const product = await Product.findByIdAndDelete(id);
+    const query = { _id: id };
 
-    if (!product) throw new Error("Product not found");
+    // If user is a vendor, ensure they only delete their own products
+    if (user && user.role === "vendor") {
+      const vendorId = user.vendorId;
+      if (!vendorId) throw new Error("Vendor ID not found for user");
+      query.vendorId = vendorId;
+    }
 
-    logger.info("Product deleted", { productId: id });
+    const product = await Product.findOneAndDelete(query);
+
+    if (!product) {
+      if (user && user.role === "vendor") {
+        throw new Error("Product not found or you don't have permission to delete it");
+      }
+      throw new Error("Product not found");
+    }
+
+    logger.info("Product deleted", { productId: id, userId: user ? user._id : "system" });
 
     await activityService.logActivity({
       type: "product_delete",
