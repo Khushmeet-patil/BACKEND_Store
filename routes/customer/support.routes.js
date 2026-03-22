@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const customerSupportController = require("../../controllers/customer.support.controller");
-const { protect } = require("../../middleware/auth.middleware");
+const protect = require("../../middleware/auth.middleware");
 
 router.post("/return", protect, customerSupportController.submitReturnRequest);
 router.post("/report", protect, customerSupportController.submitReportIssue);
