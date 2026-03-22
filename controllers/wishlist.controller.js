@@ -4,9 +4,9 @@ const wishlistService = require("../services/wishlist.service");
 exports.addToWishlist = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { productId } = req.body;
+    const { productId, quantity, size } = req.body;
 
-    await wishlistService.addToWishlist(userId, productId);
+    await wishlistService.addToWishlist(userId, productId, quantity, size);
 
     return res.status(200).json({
       success: true,

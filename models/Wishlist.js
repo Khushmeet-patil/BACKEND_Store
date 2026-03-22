@@ -15,11 +15,20 @@ const wishlistSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    quantity: {
+      type: Number,
+      required: true,
+      default: 1,
+    },
+    size: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );
 
-/* 🔒 Prevent duplicate wishlist items */
-wishlistSchema.index({ userId: 1, productId: 1 }, { unique: true });
+/* 🔒 Prevent duplicate wishlist items with same size */
+wishlistSchema.index({ userId: 1, productId: 1, size: 1 }, { unique: true });
 
 module.exports = mongoose.model("Wishlist", wishlistSchema);

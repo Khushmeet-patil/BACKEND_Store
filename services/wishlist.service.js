@@ -3,7 +3,7 @@ const Wishlist = require("../models/Wishlist");
 const Product = require("../models/Product");
 
 /* ================= ADD TO WISHLIST ================= */
-exports.addToWishlist = async (userId, productId) => {
+exports.addToWishlist = async (userId, productId, quantity = 1, size = null) => {
   // check product visibility
   const product = await Product.findOne({
     _id: productId,
@@ -18,6 +18,8 @@ exports.addToWishlist = async (userId, productId) => {
   return await Wishlist.create({
     userId,
     productId,
+    quantity,
+    size,
   });
 };
 
