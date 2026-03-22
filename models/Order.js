@@ -33,9 +33,9 @@ const orderItemSchema = new mongoose.Schema(
     /* ================= PRICING SNAPSHOT ================= */
     // These values NEVER change once order is placed
 
-    basePrice: {
+    mrp: {
       type: Number,
-      required: true,
+      required: true, // Price including GST (per unit)
     },
 
     discountType: {

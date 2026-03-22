@@ -54,11 +54,11 @@ exports.createOrder = async ({
     const qty = Number(item.quantity);
     const p = product.pricing;
 
-    const basePrice = p.basePrice || 0;
+    const mrp = p.mrp || p.basePrice || 0;
     const discountPerUnit = p.discountAmount || 0;
-    const discountedPrice = basePrice - discountPerUnit;
+    const discountedPrice = p.discountedPrice || (p.finalPrice - p.gstAmount);
     const gstPerUnit = p.gstAmount || 0;
-    const finalPrice = discountedPrice + gstPerUnit;
+    const finalPrice = p.finalPrice;
 
     subtotal += discountedPrice * qty;
     productDiscount += discountPerUnit * qty;
@@ -71,7 +71,8 @@ exports.createOrder = async ({
       name: product.name,
       image: product.images?.[0] || null,
       quantity: qty,
-      basePrice,
+      mrp,
+      basePrice: mrp, // legacy fallback 
       discountedPrice,
       discountAmount: discountPerUnit * qty,
       gstAmount: gstPerUnit * qty,

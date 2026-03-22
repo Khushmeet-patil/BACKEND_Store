@@ -185,11 +185,9 @@ exports.cartSummary = async ({ userId, couponCode, selectedItems }) => {
 
   for (const item of filteredCartItems) {
     if (!item.productId) continue;
-    const base = item.productId.pricing.basePrice || item.productId.pricing.finalPrice;
-    const gstRate = item.productId.pricing.gstRate || 0;
+    const mrp = item.productId.pricing.mrp || item.productId.pricing.basePrice || item.productId.pricing.finalPrice;
     
-    const mrpInclGst = base + (base * gstRate / 100);
-    totalMRP += mrpInclGst * item.quantity;
+    totalMRP += mrp * item.quantity;
     finalPriceSum += item.productId.pricing.finalPrice * item.quantity;
   }
 
