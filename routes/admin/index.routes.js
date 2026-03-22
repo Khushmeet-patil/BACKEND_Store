@@ -19,6 +19,7 @@ router.use("/rating", require("./ratings.routes"));
 router.use("/withdrawal", require("./withdrawal.routes"));
 router.use("/site-settings", require("./site-settings.routes"));
 router.use("/shiprocket", require("./shiprocket.routes"));
+router.use("/reports", require("./report.routes"));
 router.use("/webhooks/shiprocket", require("../webhooks/shiprocket.webhook.routes"));
 router.use("/live-temples", require("./liveTemple.routes"));
 // router.use("/analytics", require("./analytics.routes"));

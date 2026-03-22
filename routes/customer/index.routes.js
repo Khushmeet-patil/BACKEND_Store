@@ -16,5 +16,6 @@ router.use("/wishlist", require("../customer/wishlist.routes"))
 router.use("/coupon", require("../customer/coupon.routes"))
 router.use("/checkout", require("../customer/checkout.routes"))
 router.use("/profile", require("../customer/profile.routes"))
+router.use("/support", require("../customer/support.routes"))
 
 module.exports = router

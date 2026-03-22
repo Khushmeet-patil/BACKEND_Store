@@ -15,6 +15,7 @@ router.use("/orders", require("./order.routes"));
 router.use("/revenue", require("./revenue.routes"));
 router.use("/withdrawal", require("./withdrawal.routes"));
 router.use("/coupon", require("./coupon.routes"));
+router.use("/returns", require("./return.routes"));
 // router.use("/analytics", require("./analytics.routes"));
 
 module.exports = router;
