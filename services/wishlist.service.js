@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const Wishlist = require("../models/Wishlist");
+const User = require("../models/User");
 const Product = require("../models/Product");
 
 /* ================= ADD TO WISHLIST ================= */
@@ -15,60 +15,85 @@ exports.addToWishlist = async (userId, productId, quantity = 1, size = null) => 
     throw new Error("Product not available");
   }
 
-  return await Wishlist.create({
-    userId,
-    productId,
-    quantity,
-    size,
-  });
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const existingIndex = user.wishlist.findIndex(
+    (item) => item.product.toString() === productId.toString() && item.size === size
+  );
+
+  if (existingIndex > -1) {
+    user.wishlist[existingIndex].quantity = quantity;
+  } else {
+    user.wishlist.push({ product: productId, quantity, size });
+  }
+
+  await user.save();
+  return user.wishlist;
 };
 
 /* ================= REMOVE FROM WISHLIST ================= */
 exports.removeFromWishlist = async (userId, productId) => {
-  return await Wishlist.findOneAndDelete({
-    userId,
-    productId,
-  });
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
+
+  user.wishlist = user.wishlist.filter(
+    (item) => item.product.toString() !== productId.toString() && (!item._id || item._id.toString() !== productId.toString())
+  );
+
+  await user.save();
+  return user.wishlist;
 };
 
 /* ================= TOGGLE WISHLIST ================= */
 exports.toggleWishlist = async (userId, productId) => {
-  const exists = await Wishlist.findOne({ userId, productId });
+  const user = await User.findById(userId);
+  if (!user) throw new Error("User not found");
 
-  if (exists) {
-    await exists.deleteOne();
+  const existingIndex = user.wishlist.findIndex(
+    (item) => item.product.toString() === productId.toString()
+  );
+
+  if (existingIndex > -1) {
+    user.wishlist.splice(existingIndex, 1);
+    await user.save();
     return { isWishlisted: false };
+  } else {
+    user.wishlist.push({ product: productId, quantity: 1, size: null });
+    await user.save();
+    return { isWishlisted: true };
   }
-
-  await Wishlist.create({ userId, productId });
-  return { isWishlisted: true };
 };
 
 /* ================= GET USER WISHLIST ================= */
 exports.getWishlist = async (userId) => {
-  return await Wishlist.aggregate([
+  const result = await User.aggregate([
     {
       $match: {
-        userId: new mongoose.Types.ObjectId(userId),
+        _id: new mongoose.Types.ObjectId(userId),
       },
     },
-
+    // Unwind the wishlist array to act like the previous Wishlist collection format
+    { $unwind: "$wishlist" },
+    
     /* 🔗 Join products */
     {
       $lookup: {
         from: "products",
-        localField: "productId",
+        localField: "wishlist.product",
         foreignField: "_id",
-        as: "productId",
+        as: "productDetails",
       },
     },
-    { $unwind: "$productId" },
+    { $unwind: "$productDetails" },
 
     /* 🔐 Only visible products */
     {
       $match: {
-        "productId.status": true,
-        "productId.approval.status": "approved",
+        "productDetails.status": true,
+        "productDetails.approval.status": "approved",
       },
     },
 
@@ -76,7 +101,7 @@ exports.getWishlist = async (userId) => {
     {
       $lookup: {
         from: "ratings",
-        localField: "productId._id",
+        localField: "productDetails._id",
         foreignField: "productId",
         as: "ratings",
       },
@@ -84,17 +109,23 @@ exports.getWishlist = async (userId) => {
 
     {
       $addFields: {
-        "productId.averageRating": { $avg: "$ratings.rating" },
-        "productId.ratingCount": { $size: "$ratings" },
+        "productDetails.averageRating": { $avg: "$ratings.rating" },
+        "productDetails.ratingCount": { $size: "$ratings" },
       },
     },
 
     {
       $project: {
-        ratings: 0,
+        _id: "$wishlist._id",
+        userId: "$_id",
+        product: "$productDetails",
+        productId: "$productDetails",
+        quantity: "$wishlist.quantity",
+        size: "$wishlist.size",
+        createdAt: "$updatedAt"
       },
     },
-
-    { $sort: { createdAt: -1 } },
   ]);
+
+  return result;
 };

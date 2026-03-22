@@ -1,8 +1,7 @@
 const User = require("../models/User");
 const Address = require("../models/Address");
-const Order = require("../models/Order")
-const Wishlist = require("../models/Wishlist")
-const CouponUsage = require("../models/CouponUsage")
+const Order = require("../models/Order");
+const CouponUsage = require("../models/CouponUsage");
 
 exports.fetchMyProfile = async (userId) => {
   try {
@@ -30,9 +29,7 @@ exports.fetchMyProfile = async (userId) => {
     });
 
     /* ================= TOTAL WISHLIST ================= */
-    const totalWishlist = await Wishlist.countDocuments({
-      userId,
-    });
+    const totalWishlist = user.wishlist ? user.wishlist.length : 0;
 
     /* ================= TOTAL COUPONS USED ================= */
     const totalCouponsUsed = await CouponUsage.countDocuments({
