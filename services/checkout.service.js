@@ -117,31 +117,38 @@ exports.buyNowSummary = async ({
   const product = await Product.findById(productId);
   if (!product) throw new Error("Product not found");
 
-  const price = product.pricing.finalPrice;
-  const subtotal = price * quantity;
+  const basePriceTotal = (product.pricing.basePrice || product.pricing.finalPrice) * quantity;
+  const finalPriceTotal = product.pricing.finalPrice * quantity;
+  const productDiscount = basePriceTotal - finalPriceTotal;
 
-  let discount = 0;
+  let couponDiscount = 0;
 
   if (couponCode) {
     const coupon = await Coupon.findOne({ code: couponCode, isActive: true });
     if (!coupon) throw new Error("Invalid coupon");
 
-    discount =
+    couponDiscount =
       coupon.discountType === "percentage"
-        ? (subtotal * coupon.discountValue) / 100
+        ? (finalPriceTotal * coupon.discountValue) / 100
         : coupon.discountValue;
   }
 
   const tax = 0;
   const shippingFee = 0;
-  const totalAmount = subtotal - discount + tax + shippingFee;
+  const platformFee = 20;
+  
+  const totalMRP = basePriceTotal;
+  const discount = productDiscount + couponDiscount;
+  const totalAmount = finalPriceTotal - couponDiscount + tax + shippingFee + platformFee;
 
   return {
-    subtotal,
+    totalMRP,
     discount,
     tax,
     shippingFee,
+    platformFee,
     totalAmount,
+    subtotal: finalPriceTotal
   };
 };
 
@@ -154,34 +161,39 @@ exports.cartSummary = async ({ userId, couponCode, selectedItems }) => {
   // 🔥 FILTER SELECTED ITEMS
   const filteredCartItems = selectedItems && selectedItems.length > 0
     ? cart.items.filter(item => {
-        const id = item.productId._id || item.productId;
-        return selectedItems.includes(id.toString());
+        const id = item.productId?._id || item.productId;
+        return id && selectedItems.includes(id.toString());
       })
     : cart.items;
 
   if (filteredCartItems.length === 0) {
     return {
-      subtotal: 0,
+      totalMRP: 0,
       discount: 0,
       tax: 0,
       shippingFee: 0,
+      platformFee: 20,
       totalAmount: 0,
     };
   }
 
+  let totalMRP = 0;
   let subtotal = 0;
 
   for (const item of filteredCartItems) {
+    if (!item.productId) continue;
+    const basePrice = item.productId.pricing.basePrice || item.productId.pricing.finalPrice;
+    totalMRP += basePrice * item.quantity;
     subtotal += item.productId.pricing.finalPrice * item.quantity;
   }
 
-  let discount = 0;
+  let couponDiscount = 0;
 
   if (couponCode) {
     const coupon = await Coupon.findOne({ code: couponCode, isActive: true });
     if (!coupon) throw new Error("Invalid coupon");
 
-    discount =
+    couponDiscount =
       coupon.discountType === "percentage"
         ? (subtotal * coupon.discountValue) / 100
         : coupon.discountValue;
@@ -189,13 +201,17 @@ exports.cartSummary = async ({ userId, couponCode, selectedItems }) => {
 
   const tax = 0;
   const shippingFee = 0;
-  const totalAmount = subtotal - discount + tax + shippingFee;
+  const platformFee = 20;
+  const discount = (totalMRP - subtotal) + couponDiscount;
+  const totalAmount = subtotal - couponDiscount + tax + shippingFee + platformFee;
 
   return {
-    subtotal,
+    totalMRP,
     discount,
     tax,
     shippingFee,
+    platformFee,
     totalAmount,
+    subtotal
   };
 };
