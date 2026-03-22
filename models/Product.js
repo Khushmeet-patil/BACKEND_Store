@@ -28,36 +28,36 @@ const productSchema = new mongoose.Schema(
     description: String,
 
     /* ================= PRICING ================= */
-    pricing: {
-      basePrice: {
-        type: Number,
-        required: true, // without GST
-        min: 0,
-      },
-
-      discountType: {
-        type: String,
-        enum: ["percentage", "flat", "none"],
-        default: "none",
-      },
-
-      discountValue: {
-        type: Number,
-        default: 0,
-      },
-
-      discountAmount: {
-        type: Number,
-        default: 0,
-      },
-
-      discountedPrice: {
-        type: Number,
-        required: true,
-        min: 0,
-      },
-
-      gstRate: {
+     pricing: {
+       mrp: {
+         type: Number,
+         required: true, // Total Price including GST
+         min: 0,
+       },
+ 
+       discountType: {
+         type: String,
+         enum: ["percentage", "flat", "none"],
+         default: "none",
+       },
+ 
+       discountValue: {
+         type: Number,
+         default: 0,
+       },
+ 
+       discountAmount: {
+         type: Number,
+         default: 0, // Calculated discount
+       },
+ 
+       discountedPrice: {
+         type: Number,
+         required: true, // Price after discount, before GST (for internal use)
+         min: 0,
+       },
+ 
+       gstRate: {
         type: Number,
         required: true, // 3, 5, 12, 18
       },

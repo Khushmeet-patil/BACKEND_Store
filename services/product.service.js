@@ -11,7 +11,7 @@ const activityService = require("./activity.service");
    PRICING CALCULATOR (SINGLE SOURCE OF TRUTH)
 ====================================================== */
 const calculatePricing = (pricing) => {
-  const basePrice = Number(pricing.basePrice || 0);
+  const mrp = Number(pricing.mrp || 0);
   const gstRate = Number(pricing.gstRate || 0);
   const discountType = pricing.discountType || "none";
   const discountValue = Number(pricing.discountValue || 0);
@@ -19,23 +19,26 @@ const calculatePricing = (pricing) => {
   let discountAmount = 0;
 
   if (discountType === "percentage") {
-    discountAmount = (basePrice * discountValue) / 100;
+    discountAmount = (mrp * discountValue) / 100;
   } else if (discountType === "flat") {
     discountAmount = discountValue;
   }
 
-  discountAmount = Math.min(discountAmount, basePrice);
+  discountAmount = Math.min(discountAmount, mrp);
 
-  const discountedPrice = basePrice - discountAmount;
-  const gstAmount = (discountedPrice * gstRate) / 100;
-  const finalPrice = discountedPrice + gstAmount;
+  const finalPrice = mrp - discountAmount;
+  
+  // Backward calculation for GST (accounting base)
+  // x + x*gst/100 = finalPrice => x = finalPrice / (1 + gst/100)
+  const discountedPrice = finalPrice / (1 + gstRate / 100);
+  const gstAmount = finalPrice - discountedPrice;
 
   return {
-    basePrice,
+    mrp,
     discountType,
     discountValue,
     discountAmount,
-    discountedPrice,
+    discountedPrice, // Before GST price (after discount)
     gstRate,
     gstAmount,
     finalPrice,
