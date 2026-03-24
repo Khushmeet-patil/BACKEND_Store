@@ -1,11 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/upload.middleware");
+const { uploadToR2 } = require("../utils/r2Storage");
 
 /* ======================================================
    🔹 SINGLE FILE UPLOAD
 ====================================================== */
-router.post("/single", upload.single("file"), (req, res) => {
+router.post("/single", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -14,19 +15,22 @@ router.post("/single", upload.single("file"), (req, res) => {
       });
     }
 
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const url = `${baseUrl}/api/uploads/${req.file.filename}`;
+    const url = await uploadToR2(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype
+    );
 
     return res.status(201).json({
       success: true,
-      message: "File uploaded successfully",
+      message: "File uploaded successfully to R2",
       url,
     });
   } catch (error) {
     console.error("Single upload error:", error);
     return res.status(500).json({
       success: false,
-      message: "Upload failed",
+      message: error.message || "Upload failed",
     });
   }
 });
@@ -34,7 +38,7 @@ router.post("/single", upload.single("file"), (req, res) => {
 /* ======================================================
    🔹 MULTIPLE FILE UPLOAD
 ====================================================== */
-router.post("/multiple", upload.array("files", 10), (req, res) => {
+router.post("/multiple", upload.array("files", 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -43,24 +47,26 @@ router.post("/multiple", upload.array("files", 10), (req, res) => {
       });
     }
 
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-
-    const urls = req.files.map(
-      (file) => `${baseUrl}/api/uploads/${file.filename}`
+    const uploadPromises = req.files.map((file) =>
+      uploadToR2(file.buffer, file.originalname, file.mimetype)
     );
+
+    const urls = await Promise.all(uploadPromises);
 
     return res.status(201).json({
       success: true,
-      message: "Files uploaded successfully",
+      message: "Files uploaded successfully to R2",
       urls,
     });
   } catch (error) {
     console.error("Multiple upload error:", error);
     return res.status(500).json({
       success: false,
-      message: "Upload failed",
+      message: error.message || "Upload failed",
     });
   }
 });
+
+module.exports = router;
 
 module.exports = router;
