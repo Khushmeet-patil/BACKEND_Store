@@ -1,3 +1,4 @@
+const Order = require("../models/Order");
 const Product = require("../models/Product");
 const Activity = require("../models/Activity");
 const mongoose = require("mongoose");
@@ -26,10 +27,19 @@ exports.getVendorDashboardSummary = async (vendorId) => {
     ]);
 
   return {
-    totalRevenue: revenue[0]?.total || 0,
-    totalOrders,
-    totalProducts,
+    revenue: {
+      total: revenue[0]?.total || 0,
+      change: 0, // Placeholder for future trend logic
+    },
+    orders: {
+      total: totalOrders,
+      change: 0, // Placeholder
+    },
+    products: {
+      total: totalProducts,
+    },
     pendingOrders,
+    rating: 4.5, // Placeholder
   };
 };
 

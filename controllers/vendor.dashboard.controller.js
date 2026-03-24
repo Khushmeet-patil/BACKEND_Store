@@ -1,19 +1,29 @@
 const dashboardService = require("../services/vendor.dashboard.service");
 
 exports.getSummary = async (req, res) => {
-  const data = await dashboardService.getVendorDashboardSummary(
-    req.user.vendorId
-  );
-  res.json(data);
+  try {
+    const data = await dashboardService.getVendorDashboardSummary(
+      req.user.vendorId
+    );
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error("Get Summary Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 exports.getRevenue = async (req, res) => {
-  const year = req.query.year || new Date().getFullYear();
-  const data = await dashboardService.getVendorRevenueByMonth(
-    req.user.vendorId,
-    year
-  );
-  res.json(data);
+  try {
+    const year = req.query.year || new Date().getFullYear();
+    const data = await dashboardService.getVendorRevenueByMonth(
+      req.user.vendorId,
+      year
+    );
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error("Get Revenue Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 exports.getRecentActivity = async (req, res) => {
