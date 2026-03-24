@@ -1,10 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { getAdminDashboard } = require("../../controllers/admin.controller");
-const { getRecentActivity } = require("../../controllers/activity.controller");
+const vendorDashboardController = require("../../controllers/vendor.dashboard.controller");
 
-router.get("/dashboard", getAdminDashboard);
+router.get("/dashboard", vendorDashboardController.getSummary);
 
-router.get("/recent", getRecentActivity);
+router.get("/recent", vendorDashboardController.getRecentActivity);
 
 module.exports = router;
