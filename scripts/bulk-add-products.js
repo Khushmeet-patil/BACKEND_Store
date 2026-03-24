@@ -106,7 +106,7 @@ async function run() {
 
         // C. Create Product
         console.log(`Creating product: ${productName}...`);
-        const productRes = await axios.post(`${BASE_URL}/vendor/product/create`, productData, { headers });
+        const productRes = await axios.post(`${BASE_URL}/vendor/products/create`, productData, { headers });
         console.log(`Product created successfully! ID: ${productRes.data.product._id}`);
         console.log("------------------------------------------");
     }
