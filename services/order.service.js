@@ -60,6 +60,16 @@ exports.createOrder = async ({
     const gstPerUnit = p.gstAmount || 0;
     const finalPrice = p.finalPrice;
 
+    /* ================= STOCK CHECK ================= */
+    if (item.size) {
+      const variant = product.variants.find(v => v.size === item.size);
+      if (!variant || variant.stock < qty) {
+        throw new Error(`Insufficient stock for ${product.name} (Size: ${item.size})`);
+      }
+    } else if (product.stock < qty) {
+      throw new Error(`Insufficient stock for ${product.name}`);
+    }
+
     subtotal += discountedPrice * qty;
     productDiscount += discountPerUnit * qty;
     totalGst += gstPerUnit * qty;
@@ -78,6 +88,7 @@ exports.createOrder = async ({
       gstAmount: gstPerUnit * qty,
       price: finalPrice,
       totalPrice: finalPrice * qty,
+      size: item.size || null,
       status: orderStatus === "confirmed" ? "confirmed" : "pending",
     };
 
@@ -120,8 +131,45 @@ exports.createOrder = async ({
     paidAt: paymentStatus === "paid" ? new Date() : null,
   });
 
+  /* ✅ DECREMENT STOCK */
+  try {
+    await decrementStock(safeItems);
+  } catch (stockError) {
+    logger.error("Stock decrement failed", { orderId: order._id, error: stockError.message });
+    // In a production app, we might want to handle this more strictly (e.g. failing the order creation if stock is insufficient)
+    // but for now, we'll log it to avoid blocking order creation if DB is slow but order is paid.
+  }
+
   return { order, vendorMap };
 };
+
+/**
+ * Atomic stock decrement helper (Enterprise Level)
+ * Decrements both root stock and variant stock if applicable.
+ */
+async function decrementStock(items) {
+  for (const item of items) {
+    try {
+      const updateQuery = { $inc: { stock: -item.quantity } };
+      
+      // If it's a variant (size based), decrement that variant's stock too
+      if (item.size) {
+        updateQuery.$inc["variants.$[elem].stock"] = -item.quantity;
+      }
+
+      await Product.updateOne(
+        { _id: item.productId },
+        updateQuery,
+        {
+          arrayFilters: item.size ? [{ "elem.size": item.size }] : [],
+          runValidators: true
+        }
+      );
+    } catch (err) {
+      logger.error(`Failed to decrement stock for product ${item.productId}`, err);
+    }
+  }
+}
 
 /* =====================================================
    CUSTOMER ORDERS

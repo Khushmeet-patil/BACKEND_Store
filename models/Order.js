@@ -115,6 +115,11 @@ const orderItemSchema = new mongoose.Schema(
     ],
 
     /* ================= SHIPPING (PER ITEM) ================= */
+    size: {
+      type: String,
+      default: null, // to track which variant size was ordered
+    },
+
     shipping: {
       shipmentId: String,
       shiprocketOrderId: String,
