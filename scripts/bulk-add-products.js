@@ -7,7 +7,7 @@ const FormData = require("form-data");
 const BASE_URL = "https://backendstore-production-1122.up.railway.app/api";
 const VENDOR_EMAIL = "khusmitpatil4@gmail.com";
 const VENDOR_PASSWORD = "123456789";
-const IMAGES_DIR = path.join(__dirname, "../product images");
+const IMAGES_DIR = path.join(__dirname, "../productimages");
 
 const PRODUCT_NAMES = ["Astro", "Rudra", "Vedic", "Divine", "Spiritual", "Cosmic", "Lunar", "Solar", "Ganesh", "Shiva"];
 const PRODUCT_TYPES = ["Mala", "Stone", "Yantra", "Ring", "Bracelet", "Necklace", "Incense", "Oil"];
