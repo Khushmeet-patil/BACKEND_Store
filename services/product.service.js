@@ -737,7 +737,7 @@ exports.myProduct = async (vendorId, options = {}) => {
     };
 
     if (status) {
-      matchQuery.approvalStatus = status;
+      matchQuery["approval.status"] = status;
     }
 
     if (search) {

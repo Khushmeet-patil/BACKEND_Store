@@ -1,16 +1,27 @@
-const Order = require("../models/Order");
 const Product = require("../models/Product");
 const Activity = require("../models/Activity");
+const mongoose = require("mongoose");
 
 exports.getVendorDashboardSummary = async (vendorId) => {
+  const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+
   const [totalOrders, pendingOrders, totalProducts, revenue] =
     await Promise.all([
-      Order.countDocuments({ vendorId }),
-      Order.countDocuments({ vendorId, status: "pending" }),
-      Product.countDocuments({ vendorId }),
+      Order.countDocuments({ "items.vendorId": vendorObjectId }),
+      Order.countDocuments({ 
+        "items.vendorId": vendorObjectId, 
+        orderStatus: "pending" 
+      }),
+      Product.countDocuments({ vendorId: vendorObjectId }),
       Order.aggregate([
-        { $match: { vendorId, status: "completed" } },
-        { $group: { _id: null, total: { $sum: "$finalAmount" } } },
+        { $unwind: "$items" },
+        { 
+          $match: { 
+            "items.vendorId": vendorObjectId, 
+            orderStatus: "completed" 
+          } 
+        },
+        { $group: { _id: null, total: { $sum: "$items.totalPrice" } } },
       ]),
     ]);
 
@@ -23,11 +34,14 @@ exports.getVendorDashboardSummary = async (vendorId) => {
 };
 
 exports.getVendorRevenueByMonth = async (vendorId, year) => {
+  const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+
   return Order.aggregate([
+    { $unwind: "$items" },
     {
       $match: {
-        vendorId,
-        status: "completed",
+        "items.vendorId": vendorObjectId,
+        orderStatus: "completed",
         createdAt: {
           $gte: new Date(`${year}-01-01`),
           $lte: new Date(`${year}-12-31`),
@@ -37,7 +51,7 @@ exports.getVendorRevenueByMonth = async (vendorId, year) => {
     {
       $group: {
         _id: { $month: "$createdAt" },
-        revenue: { $sum: "$finalAmount" },
+        revenue: { $sum: "$items.totalPrice" },
       },
     },
     { $sort: { "_id": 1 } },
