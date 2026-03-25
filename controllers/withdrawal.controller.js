@@ -28,6 +28,54 @@ exports.fetchAllWithdrawals = async (req, res) => {
 };
 
 /* ======================================================
+   VENDOR FETCH OWN WITHDRAWALS
+====================================================== */
+exports.getVendorWithdrawals = async (req, res) => {
+  try {
+    const vendorId = req.user.vendorId;
+    const { page, limit, status } = req.query;
+
+    const result = await withdrawalService.getVendorWithdrawals({
+      vendorId,
+      page: Number(page) || 1,
+      limit: Number(limit) || 20,
+      status,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "History fetched successfully",
+      ...result,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* ======================================================
+   VENDOR FETCH WALLET
+====================================================== */
+exports.getVendorWallet = async (req, res) => {
+  try {
+    const vendorId = req.user.vendorId;
+    const wallet = await withdrawalService.getVendorWallet(vendorId);
+
+    res.status(200).json({
+      success: true,
+      data: wallet,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* ======================================================
    VENDOR CREATE REQUEST
 ====================================================== */
 exports.requestWithdrawal = async (req, res) => {

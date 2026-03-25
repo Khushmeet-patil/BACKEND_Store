@@ -66,6 +66,57 @@ exports.getAllWithdrawals = async ({
 };
 
 /* ======================================================
+   VENDOR FETCH WITHDRAWALS
+====================================================== */
+exports.getVendorWithdrawals = async ({
+  vendorId,
+  page = 1,
+  limit = 20,
+  status = null,
+}) => {
+  const skip = (page - 1) * limit;
+  const match = { vendorId: new require("mongoose").Types.ObjectId(vendorId) };
+
+  if (status) {
+    match.status = status;
+  }
+
+  const [data, total] = await Promise.all([
+    Withdrawal.find(match)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Withdrawal.countDocuments(match),
+  ]);
+
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+/* ======================================================
+   VENDOR FETCH WALLET
+====================================================== */
+exports.getVendorWallet = async (vendorId) => {
+  const wallet = await VendorWallet.findOne({ vendorId });
+  if (!wallet) {
+    // Return a default wallet if not found
+    return {
+      balance: 0,
+      totalEarned: 0,
+      totalWithdrawn: 0,
+    };
+  }
+  return wallet;
+};
+
+/* ======================================================
    VENDOR REQUEST WITHDRAWAL
 ====================================================== */
 exports.requestWithdrawal = async ({ vendorId, amount }) => {
