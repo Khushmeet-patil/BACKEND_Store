@@ -228,10 +228,15 @@ exports.getCustomerOrders = async (customerId) => {
    VENDOR ORDERS
 ===================================================== */
 exports.getVendorOrders = async (vendorId) => {
-  const orders = await Order.find({ "items.vendorId": vendorId })
-    .populate("customerId", "firstName lastName email")
-    .sort({ createdAt: -1 })
-    .lean();
+  const [orders, vendor] = await Promise.all([
+    Order.find({ "items.vendorId": vendorId })
+      .populate("customerId", "firstName lastName email")
+      .sort({ createdAt: -1 })
+      .lean(),
+    Vendor.findById(vendorId).select("commissionRate")
+  ]);
+
+  const currentCommission = vendor?.commissionRate || 10;
 
   return orders.map((order) => ({
     _id: order._id,
@@ -260,7 +265,7 @@ exports.getVendorOrders = async (vendorId) => {
 
         price: item.price,
         totalPrice: item.totalPrice,
-        vendorEarning: item.totalPrice - (item.totalPrice * (item.commissionRate || 10) / 100),
+        vendorEarning: item.totalPrice - (item.totalPrice * (item.commissionRate || currentCommission) / 100),
         status: item.status,
       })),
 
