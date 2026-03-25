@@ -167,3 +167,23 @@ exports.markWithdrawalPaid = async (req, res) => {
     });
   }
 };
+
+/* ======================================================
+   ADMIN GET WITHDRAWAL BREAKDOWN
+====================================================== */
+exports.getWithdrawalBreakdown = async (req, res) => {
+  try {
+    const withdrawalId = req.params.id;
+    const breakdown = await withdrawalService.getWithdrawalBreakdown(withdrawalId);
+
+    res.json({
+      success: true,
+      data: breakdown,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

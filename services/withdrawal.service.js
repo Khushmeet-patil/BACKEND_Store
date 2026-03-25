@@ -417,3 +417,20 @@ exports.markAsPaid = async ({ withdrawalId, paymentProof }) => {
 
   return withdrawal;
 };
+
+/* ======================================================
+   ADMIN GET WITHDRAWAL BREAKDOWN
+====================================================== */
+exports.getWithdrawalBreakdown = async (withdrawalId) => {
+  const withdrawal = await Withdrawal.findById(withdrawalId);
+  if (!withdrawal) throw new Error("Withdrawal not found");
+
+  // We reuse the vendor wallet breakdown logic to show what's currently withdrawable vs pending
+  const breakdown = await exports.getVendorWalletBreakdown(withdrawal.vendorId);
+  
+  return {
+    requestedAmount: withdrawal.amount,
+    vendorId: withdrawal.vendorId,
+    ...breakdown
+  };
+};
