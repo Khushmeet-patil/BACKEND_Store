@@ -79,6 +79,11 @@ const orderItemSchema = new mongoose.Schema(
       required: true, // FINAL price * quantity
     },
 
+    commissionRate: {
+      type: Number,
+      default: 0, // %
+    },
+
     /* ================= ITEM STATUS ================= */
     status: {
       type: String,

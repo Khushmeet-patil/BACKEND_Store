@@ -10,7 +10,7 @@ exports.creditCommission = async ({ orderId, orderItem }) => {
     throw new Error("Vendor not found for commission");
   }
 
-  const commissionRate = Number(vendor.commissionRate || 0);
+  const commissionRate = Number(orderItem.commissionRate || vendor.commissionRate || 10);
 
   // 2️⃣ Prevent duplicate commission (VERY IMPORTANT)
   const existing = await Commission.findOne({
