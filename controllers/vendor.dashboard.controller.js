@@ -43,3 +43,43 @@ exports.getRecentActivity = async (req, res) => {
     });
   }
 };
+
+exports.getDailyStats = async (req, res) => {
+  try {
+    const days = req.query.days || 7;
+    const vendorId = req.user.vendorId;
+
+    const stats = await dashboardService.getVendorDailyStats(vendorId, days);
+
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    console.error("Get Daily Stats Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch daily stats",
+    });
+  }
+};
+
+exports.getTopProducts = async (req, res) => {
+  try {
+    const limit = req.query.limit || 5;
+    const vendorId = req.user.vendorId;
+
+    const products = await dashboardService.getVendorTopProducts(vendorId, limit);
+
+    res.status(200).json({
+      success: true,
+      data: products,
+    });
+  } catch (error) {
+    console.error("Get Top Products Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch top products",
+    });
+  }
+};

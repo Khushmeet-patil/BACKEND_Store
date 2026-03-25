@@ -708,18 +708,26 @@ exports.rejectProduct = async (id, reason, adminId, role) => {
     metadata: { productId: product._id, reviewedBy: adminId, reason },
   });
 
-  await sendEmail({
-    to: vendor.storeEmail,
-    subject: EMAIL_SUBJECTS.PRODUCT_REJECTED,
-    html: productRejectedTemplate({
-      vendorName: vendor.storeName,
-      productName: product.name,
-      rejectionReason: product.approval.rejectionReason,
-      platformName: "Astro Mall",
-      supportEmail: "support@astromall.com",
-      year: new Date().getFullYear(),
-    }),
-  });
+  try {
+    await sendEmail({
+      to: vendor.storeEmail,
+      subject: EMAIL_SUBJECTS.PRODUCT_REJECTED,
+      html: productRejectedTemplate({
+        vendorName: vendor.storeName,
+        productName: product.name,
+        rejectionReason: product.approval.rejectionReason,
+        platformName: "Astro Mall",
+        supportEmail: "support@astromall.com",
+        year: new Date().getFullYear(),
+      }),
+    });
+  } catch (emailError) {
+    logger.error("Product rejection email failed to send", {
+      productId: product._id,
+      vendorEmail: vendor.storeEmail,
+      error: emailError.message,
+    });
+  }
 
   return product;
 };

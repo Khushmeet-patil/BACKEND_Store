@@ -26,10 +26,12 @@ exports.getVendorDashboardSummary = async (vendorId) => {
       ]),
     ]);
 
+  const avgOrderValue = totalOrders > 0 ? (revenue[0]?.total || 0) / totalOrders : 0;
+
   return {
     revenue: {
       total: revenue[0]?.total || 0,
-      change: 0, // Placeholder for future trend logic
+      change: 0, // Placeholder
     },
     orders: {
       total: totalOrders,
@@ -38,9 +40,72 @@ exports.getVendorDashboardSummary = async (vendorId) => {
     products: {
       total: totalProducts,
     },
+    avgOrderValue,
     pendingOrders,
     rating: 4.5, // Placeholder
   };
+};
+
+exports.getVendorTopProducts = async (vendorId, limit = 5) => {
+  const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+
+  return Order.aggregate([
+    { $unwind: "$items" },
+    {
+      $match: {
+        "items.vendorId": vendorObjectId,
+        orderStatus: "completed",
+      },
+    },
+    {
+      $group: {
+        _id: "$items.productId",
+        name: { $first: "$items.name" },
+        sales: { $sum: "$items.quantity" },
+        revenue: { $sum: "$items.totalPrice" },
+      },
+    },
+    { $sort: { sales: -1 } },
+    { $limit: Number(limit) },
+  ]);
+};
+
+exports.getVendorDailyStats = async (vendorId, days = 7) => {
+  const vendorObjectId = new mongoose.Types.ObjectId(vendorId);
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - Number(days));
+
+  return Order.aggregate([
+    { $unwind: "$items" },
+    {
+      $match: {
+        "items.vendorId": vendorObjectId,
+        orderStatus: "completed",
+        createdAt: { $gte: startDate },
+      },
+    },
+    {
+      $group: {
+        _id: {
+          $dateToString: {
+            format: "%Y-%m-%d",
+            date: "$createdAt",
+            timezone: "Asia/Kolkata",
+          },
+        },
+        revenue: { $sum: "$items.totalPrice" },
+        orders: { $addToSet: "$_id" }, // Count unique orders
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        revenue: 1,
+        orders: { $size: "$orders" },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
 };
 
 exports.getVendorRevenueByMonth = async (vendorId, year) => {

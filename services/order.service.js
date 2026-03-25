@@ -402,22 +402,30 @@ exports.updateItemStatus = async ({ orderId, itemId, status, vendorId }) => {
       orderId: order._id,
       orderItem: item,
     });
-    await sendEmail({
-      to: order.customerId.email,
-      subject:
-        status === "shipped"
-          ? EMAIL_SUBJECTS.ORDER_SHIPPED
-          : EMAIL_SUBJECTS.ORDER_DELIVERED,
-      html: orderStatusUpdateTemplate({
-        customerName: order.customerId.firstName,
-        orderNumber: order.orderNumber,
-        productName: item.name,
-        status,
-        platformName: "YourPlatform",
-        supportEmail: "support@yourplatform.com",
-        year: new Date().getFullYear(),
-      }),
-    });
+    /* ================= EMAIL TO CUSTOMER (NON-BLOCKING) ================= */
+    try {
+      await sendEmail({
+        to: order.customerId.email,
+        subject:
+          status === "shipped"
+            ? EMAIL_SUBJECTS.ORDER_SHIPPED
+            : EMAIL_SUBJECTS.ORDER_DELIVERED,
+        html: orderStatusUpdateTemplate({
+          customerName: order.customerId.firstName,
+          orderNumber: order.orderNumber,
+          productName: item.name,
+          status,
+          platformName: "YourPlatform",
+          supportEmail: "support@yourplatform.com",
+          year: new Date().getFullYear(),
+        }),
+      });
+    } catch (emailError) {
+      logger.error("Order status email failed to send", {
+        orderId: order._id,
+        error: emailError.message,
+      });
+    }
   }
 
   return order;

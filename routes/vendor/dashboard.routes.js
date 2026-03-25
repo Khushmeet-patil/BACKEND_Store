@@ -5,5 +5,7 @@ const vendorDashboardController = require("../../controllers/vendor.dashboard.co
 router.get("/dashboard", vendorDashboardController.getSummary);
 
 router.get("/recent", vendorDashboardController.getRecentActivity);
+router.get("/top-products", vendorDashboardController.getTopProducts);
+router.get("/daily-stats", vendorDashboardController.getDailyStats);
 
 module.exports = router;

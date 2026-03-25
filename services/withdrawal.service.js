@@ -139,35 +139,51 @@ exports.updateWithdrawalStatus = async ({
 
   // ================= SEND EMAIL =================
   if (status === "approved") {
-    await sendEmail({
-      to: vendor.storeEmail,
-      subject: EMAIL_SUBJECTS.VENDOR_WITHDRAWAL_APPROVED,
-      html: withdrawalApprovedTemplate({
-        vendorName: vendor.storeName,
-        amount: withdrawal.amount,
+    try {
+      await sendEmail({
+        to: vendor.storeEmail,
+        subject: EMAIL_SUBJECTS.VENDOR_WITHDRAWAL_APPROVED,
+        html: withdrawalApprovedTemplate({
+          vendorName: vendor.storeName,
+          amount: withdrawal.amount,
+          withdrawalId: withdrawal._id,
+          approvedDate: new Date(withdrawal.approvedAt).toDateString(),
+          platformName: "Astro Marketplace",
+          supportEmail: "support@astromarketplace.com",
+          year: new Date().getFullYear(),
+        }),
+      });
+    } catch (emailError) {
+      logger.error("Withdrawal approval email failed to send", {
         withdrawalId: withdrawal._id,
-        approvedDate: new Date(withdrawal.approvedAt).toDateString(),
-        platformName: "Astro Marketplace",
-        supportEmail: "support@astromarketplace.com",
-        year: new Date().getFullYear(),
-      }),
-    });
+        vendorEmail: vendor.storeEmail,
+        error: emailError.message,
+      });
+    }
   }
 
   if (status === "rejected") {
-    await sendEmail({
-      to: vendor.storeEmail,
-      subject: EMAIL_SUBJECTS.VENDOR_WITHDRAWAL_REJECTED,
-      html: withdrawalRejectedTemplate({
-        vendorName: vendor.storeName,
-        amount: withdrawal.amount,
+    try {
+      await sendEmail({
+        to: vendor.storeEmail,
+        subject: EMAIL_SUBJECTS.VENDOR_WITHDRAWAL_REJECTED,
+        html: withdrawalRejectedTemplate({
+          vendorName: vendor.storeName,
+          amount: withdrawal.amount,
+          withdrawalId: withdrawal._id,
+          adminRemark,
+          platformName: "Astro Marketplace",
+          supportEmail: "support@astromarketplace.com",
+          year: new Date().getFullYear(),
+        }),
+      });
+    } catch (emailError) {
+      logger.error("Withdrawal rejection email failed to send", {
         withdrawalId: withdrawal._id,
-        adminRemark,
-        platformName: "Astro Marketplace",
-        supportEmail: "support@astromarketplace.com",
-        year: new Date().getFullYear(),
-      }),
-    });
+        vendorEmail: vendor.storeEmail,
+        error: emailError.message,
+      });
+    }
   }
 
   return withdrawal;
@@ -218,19 +234,27 @@ exports.markAsPaid = async ({ withdrawalId, paymentProof }) => {
   await withdrawal.save();
 
   // ================= SEND EMAIL =================
-  await sendEmail({
-    to: vendor.storeEmail,
-    subject: EMAIL_SUBJECTS.VENDOR_WITHDRAWAL_PAID,
-    html: withdrawalPaidTemplate({
-      vendorName: vendor.storeName,
-      amount: withdrawal.amount,
+  try {
+    await sendEmail({
+      to: vendor.storeEmail,
+      subject: EMAIL_SUBJECTS.VENDOR_WITHDRAWAL_PAID,
+      html: withdrawalPaidTemplate({
+        vendorName: vendor.storeName,
+        amount: withdrawal.amount,
+        withdrawalId: withdrawal._id,
+        paidDate: new Date(withdrawal.paidAt).toDateString(),
+        platformName: "Astro Marketplace",
+        supportEmail: "support@astromarketplace.com",
+        year: new Date().getFullYear(),
+      }),
+    });
+  } catch (emailError) {
+    logger.error("Withdrawal paid email failed to send", {
       withdrawalId: withdrawal._id,
-      paidDate: new Date(withdrawal.paidAt).toDateString(),
-      platformName: "Astro Marketplace",
-      supportEmail: "support@astromarketplace.com",
-      year: new Date().getFullYear(),
-    }),
-  });
+      vendorEmail: vendor.storeEmail,
+      error: emailError.message,
+    });
+  }
 
   return withdrawal;
 };
