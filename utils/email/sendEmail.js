@@ -12,23 +12,26 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  // Standardized TLS settings for better compatibility
   tls: {
     rejectUnauthorized: false,
     minVersion: "TLSv1.2"
   },
-  connectionTimeout: 15000, // Increased to 15s
-  greetingTimeout: 15000,
-  socketTimeout: 15000,
+  connectionTimeout: 20000, 
+  greetingTimeout: 20000,
+  socketTimeout: 20000,
 });
 
 const sendEmail = async ({ to, subject, html }) => {
-  console.log(`Email Debug: Host=${process.env.EMAIL_HOST}, Port=${port}, Secure=${secure}, User=${process.env.EMAIL_USER}`);
+  const currentHost = process.env.EMAIL_HOST;
+  const currentPort = port;
+  
+  console.log(`Email Attempt: To=${to}, Subject="${subject}", Host=${currentHost}, Port=${currentPort}`);
 
   try {
     // Verify connection before sending
     await transporter.verify();
-    console.log("SMTP connection verified successfully");
-
+    
     const info = await transporter.sendMail({
       from: `"${process.env.EMAIL_FROM || 'VedicStore'}" <${process.env.EMAIL_USER}>`,
       to,
@@ -46,12 +49,24 @@ const sendEmail = async ({ to, subject, html }) => {
   } catch (error) {
     logger.error("Email sending failed", {
       to,
+      subject,
+      host: currentHost,
+      port: currentPort,
       errorMessage: error.message,
       errorCode: error.code,
-      command: error.command
+      command: error.command,
+      response: error.response
     });
-    console.error("Detailed Nodemailer Error:", error);
-    throw new Error(`Email failure: ${error.message}`);
+    
+    console.error("Nodemailer Error Details:", {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response,
+      stack: error.stack
+    });
+
+    throw new Error(`Email failure: ${error.message} (Host: ${currentHost}:${currentPort})`);
   }
 };
 
