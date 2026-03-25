@@ -182,6 +182,20 @@ exports.getProducts = async (filters = {}) => {
       },
       {
         $lookup: {
+          from: "vendors",
+          localField: "vendorId",
+          foreignField: "_id",
+          as: "vendorId",
+        },
+      },
+      {
+        $unwind: {
+          path: "$vendorId",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
           from: "ratings",
           localField: "_id",
           foreignField: "productId",
@@ -352,6 +366,20 @@ exports.getProducts = async (filters = {}) => {
     {
       $unwind: {
         path: "$category",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "vendors",
+        localField: "vendorId",
+        foreignField: "_id",
+        as: "vendorId",
+      },
+    },
+    {
+      $unwind: {
+        path: "$vendorId",
         preserveNullAndEmptyArrays: true,
       },
     },
