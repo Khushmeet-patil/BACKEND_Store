@@ -12,6 +12,35 @@ exports.getAdminEmails = async () => {
   return admins.map((admin) => admin.email);
 };
 
+/* ================= WEEKLY REVENUE (Last 7 Days) ================= */
+const getWeeklyRevenue = async () => {
+  const weeklyData = [];
+  const now = new Date();
+
+  for (let i = 6; i >= 0; i--) {
+    const start = new Date(now);
+    start.setDate(now.getDate() - i);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(now);
+    end.setDate(now.getDate() - i);
+    end.setHours(23, 59, 59, 999);
+
+    const revenueAgg = await Order.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end }, status: { $ne: "cancelled" } } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+    ]);
+
+    const dayName = start.toLocaleDateString("en-US", { weekday: "short" });
+    weeklyData.push({
+      name: dayName,
+      revenue: revenueAgg[0]?.total || 0,
+    });
+  }
+
+  return weeklyData;
+};
+
 exports.getAdminDashboardStats = async () => {
   const { startOfCurrentMonth, startOfPreviousMonth, endOfPreviousMonth } =
     getMonthRanges();
@@ -56,6 +85,8 @@ exports.getAdminDashboardStats = async () => {
   const totalVendors = await User.countDocuments({ role: "vendor" });
   const totalCustomers = await User.countDocuments({ role: "customer" });
 
+  const weeklyRevenue = await getWeeklyRevenue();
+
   return {
     orders: {
       total: currentOrders,
@@ -67,6 +98,7 @@ exports.getAdminDashboardStats = async () => {
     },
     vendors: totalVendors,
     customers: totalCustomers,
+    weeklyRevenue,
   };
 };
 

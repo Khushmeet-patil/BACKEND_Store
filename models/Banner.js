@@ -20,6 +20,15 @@ const bannerSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    linkType: {
+      type: String,
+      enum: ["none", "app_screen", "product"],
+      default: "none",
+    },
+    linkValue: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );
