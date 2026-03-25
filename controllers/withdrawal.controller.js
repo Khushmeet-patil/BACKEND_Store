@@ -32,7 +32,14 @@ exports.fetchAllWithdrawals = async (req, res) => {
 ====================================================== */
 exports.getVendorWithdrawals = async (req, res) => {
   try {
-    const vendorId = req.user.vendorId;
+    const vendorId = req.user?.vendorId;
+    if (!vendorId) {
+      return res.status(400).json({
+        success: false,
+        message: "Vendor access denied. Please re-login to update your session.",
+      });
+    }
+
     const { page, limit, status } = req.query;
 
     const result = await withdrawalService.getVendorWithdrawals({
@@ -60,7 +67,13 @@ exports.getVendorWithdrawals = async (req, res) => {
 ====================================================== */
 exports.getVendorWallet = async (req, res) => {
   try {
-    const vendorId = req.user.vendorId;
+    const vendorId = req.user?.vendorId;
+    if (!vendorId) {
+      return res.status(400).json({
+        success: false,
+        message: "Vendor access denied. Please re-login.",
+      });
+    }
     const wallet = await withdrawalService.getVendorWallet(vendorId);
 
     res.status(200).json({

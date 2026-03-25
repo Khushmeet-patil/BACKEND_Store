@@ -74,8 +74,10 @@ exports.getVendorWithdrawals = async ({
   limit = 20,
   status = null,
 }) => {
+  if (!vendorId) throw new Error("Vendor ID is required");
+  
   const skip = (page - 1) * limit;
-  const match = { vendorId: new require("mongoose").Types.ObjectId(vendorId) };
+  const match = { vendorId: vendorId }; // Mongoose handles string to ObjectId conversion for find()
 
   if (status) {
     match.status = status;
@@ -104,6 +106,7 @@ exports.getVendorWithdrawals = async ({
    VENDOR FETCH WALLET
 ====================================================== */
 exports.getVendorWallet = async (vendorId) => {
+  if (!vendorId) throw new Error("Vendor ID is required");
   const wallet = await VendorWallet.findOne({ vendorId });
   if (!wallet) {
     // Return a default wallet if not found
