@@ -37,6 +37,11 @@ const withdrawalSchema = new mongoose.Schema(
       default: null,
     },
 
+    approvedAmount: {
+      type: Number,
+      default: null,
+    },
+
     approvedAt: Date,
     paidAt: Date,
   },

@@ -120,12 +120,13 @@ exports.requestWithdrawal = async (req, res) => {
 exports.updateWithdrawalStatus = async (req, res) => {
   try {
     const withdrawalId = req.params.id;
-    const { status, adminRemark } = req.body;
+    const { status, adminRemark, approvedAmount } = req.body;
     
     const result = await withdrawalService.updateWithdrawalStatus({
       withdrawalId,
       status,
       adminRemark,
+      approvedAmount: approvedAmount ? Number(approvedAmount) : null,
     });
 
     res.json({

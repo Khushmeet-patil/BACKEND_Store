@@ -259,7 +259,7 @@ exports.getVendorOrders = async (vendorId) => {
 
         price: item.price,
         totalPrice: item.totalPrice,
-
+        vendorEarning: item.totalPrice - (item.totalPrice * (order.items.find(i => i._id.toString() === item._id.toString()).commissionRate || 10) / 100), // Fallback to 10% if not found
         status: item.status,
       })),
 

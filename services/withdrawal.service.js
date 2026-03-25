@@ -103,20 +103,111 @@ exports.getVendorWithdrawals = async ({
 };
 
 /* ======================================================
+   VENDOR FETCH WALLET BREAKDOWN
+====================================================== */
+exports.getVendorWalletBreakdown = async (vendorId) => {
+  if (!vendorId) throw new Error("Vendor ID is required");
+  
+  const Order = require("../models/Order");
+  const Commission = require("../models/Commission");
+  
+  // 1️⃣ Fetch all paid commissions for this vendor
+  const commissions = await Commission.find({ 
+    vendorId, 
+    status: "credited" 
+  }).populate("orderId", "orderNumber items createdAt");
+
+  let totalBalance = 0;
+  let withdrawableBalance = 0;
+  let pendingBalance = 0;
+  
+  const breakdown = [];
+  const now = new Date();
+
+  for (const comm of commissions) {
+    const order = comm.orderId;
+    if (!order) continue;
+
+    // Find the specific item in the order
+    const item = order.items.find(i => i._id.toString() === comm.orderItemId.toString());
+    if (!item) continue;
+
+    const earnings = comm.vendorEarning;
+    totalBalance += earnings;
+
+    // Calculate if return period is over
+    let isWithdrawable = false;
+    let returnEndDate = null;
+    let daysRemaining = 0;
+
+    if (item.status === "delivered" && item.shipping?.deliveredAt) {
+      // Get return days from product if possible, else default to 7
+      const product = await require("../models/Product").findById(item.productId).select("returnDays");
+      const returnDays = product?.returnDays || 7;
+      
+      returnEndDate = new Date(item.shipping.deliveredAt);
+      returnEndDate.setDate(returnEndDate.getDate() + returnDays);
+      
+      if (now > returnEndDate) {
+        isWithdrawable = true;
+        withdrawableBalance += earnings;
+      } else {
+        pendingBalance += earnings;
+        daysRemaining = Math.ceil((returnEndDate - now) / (1000 * 60 * 60 * 24));
+      }
+    } else {
+      pendingBalance += earnings;
+      // If not yet delivered, it's pending indefinitely
+    }
+
+    breakdown.push({
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      itemName: item.name,
+      amount: earnings,
+      status: item.status,
+      deliveredAt: item.shipping?.deliveredAt,
+      returnEndDate,
+      isWithdrawable,
+      daysRemaining: isWithdrawable ? 0 : daysRemaining
+    });
+  }
+
+  // Also subtract what was already withdrawn or requested
+  const wallet = await VendorWallet.findOne({ vendorId });
+  const requestedAmount = await Withdrawal.aggregate([
+    { $match: { vendorId: new require("mongoose").Types.ObjectId(vendorId), status: "pending" } },
+    { $group: { _id: null, total: { $sum: "$amount" } } }
+  ]);
+
+  const pendingWithdrawal = requestedAmount[0]?.total || 0;
+
+  return {
+    totalBalance,
+    withdrawableBalance: Math.max(0, withdrawableBalance - (wallet?.totalWithdrawn || 0)),
+    pendingBalance,
+    pendingWithdrawal,
+    breakdown
+  };
+};
+
+/* ======================================================
    VENDOR FETCH WALLET
 ====================================================== */
 exports.getVendorWallet = async (vendorId) => {
   if (!vendorId) throw new Error("Vendor ID is required");
+  
+  const breakdown = await exports.getVendorWalletBreakdown(vendorId);
   const wallet = await VendorWallet.findOne({ vendorId });
-  if (!wallet) {
-    // Return a default wallet if not found
-    return {
-      balance: 0,
-      totalEarned: 0,
-      totalWithdrawn: 0,
-    };
-  }
-  return wallet;
+  
+  return {
+    balance: wallet?.balance || 0,
+    totalEarned: wallet?.totalEarned || 0,
+    totalWithdrawn: wallet?.totalWithdrawn || 0,
+    withdrawableBalance: breakdown.withdrawableBalance,
+    pendingBalance: breakdown.pendingBalance,
+    pendingWithdrawal: breakdown.pendingWithdrawal
+  };
 };
 
 /* ======================================================
@@ -169,6 +260,7 @@ exports.updateWithdrawalStatus = async ({
   withdrawalId,
   status,
   adminRemark,
+  approvedAmount,
 }) => {
   const withdrawal = await Withdrawal.findById(withdrawalId);
   if (!withdrawal) throw new Error("Withdrawal request not found");
@@ -181,12 +273,22 @@ exports.updateWithdrawalStatus = async ({
     throw new Error("Rejection reason is required");
   }
 
+  if (status === "approved") {
+    if (approvedAmount === undefined || approvedAmount === null) {
+      approvedAmount = withdrawal.amount;
+    }
+    if (approvedAmount > withdrawal.amount) {
+      throw new Error("Approved amount cannot exceed requested amount");
+    }
+  }
+
   const vendor = await Vendor.findById(withdrawal.vendorId);
   if (!vendor) throw new Error("Vendor not found");
 
   // ================= UPDATE STATUS =================
   withdrawal.status = status;
   withdrawal.adminRemark = adminRemark || null;
+  withdrawal.approvedAmount = status === "approved" ? approvedAmount : null;
   withdrawal.approvedAt = status === "approved" ? new Date() : null;
 
   await withdrawal.save();
@@ -199,9 +301,11 @@ exports.updateWithdrawalStatus = async ({
         subject: EMAIL_SUBJECTS.VENDOR_WITHDRAWAL_APPROVED,
         html: withdrawalApprovedTemplate({
           vendorName: vendor.storeName,
-          amount: withdrawal.amount,
+          amount: withdrawal.approvedAmount,
+          requestedAmount: withdrawal.amount,
           withdrawalId: withdrawal._id,
           approvedDate: new Date(withdrawal.approvedAt).toDateString(),
+          adminRemark: withdrawal.adminRemark,
           platformName: "Astro Marketplace",
           supportEmail: "support@astromarketplace.com",
           year: new Date().getFullYear(),
@@ -277,8 +381,9 @@ exports.markAsPaid = async ({ withdrawalId, paymentProof }) => {
   if (!vendor) throw new Error("Vendor not found");
 
   // ================= WALLET UPDATE =================
-  wallet.balance -= withdrawal.amount;
-  wallet.totalWithdrawn += withdrawal.amount;
+  const amountToDeduct = withdrawal.approvedAmount || withdrawal.amount;
+  wallet.balance -= amountToDeduct;
+  wallet.totalWithdrawn += amountToDeduct;
   await wallet.save();
 
   // ================= WITHDRAWAL UPDATE =================

@@ -19,7 +19,7 @@ exports.getVendorDashboardSummary = async (vendorId) => {
         { 
           $match: { 
             "items.vendorId": vendorObjectId, 
-            orderStatus: "completed" 
+            paymentStatus: { $in: ["paid", "PAID", "RAZORPAY"] }
           } 
         },
         { $group: { _id: null, total: { $sum: "$items.totalPrice" } } },
@@ -43,6 +43,7 @@ exports.getVendorDashboardSummary = async (vendorId) => {
     avgOrderValue,
     pendingOrders,
     rating: 4.5, // Placeholder
+    wallet: await require("./withdrawal.service").getVendorWallet(vendorId),
   };
 };
 
