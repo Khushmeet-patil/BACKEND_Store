@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const Withdrawal = require("../models/Withdrawal");
 const VendorWallet = require("../models/VendorWallet");
 const Vendor = require("../models/Vendor");
+const Order = require("../models/Order");
+const Product = require("../models/Product");
 const {
   withdrawalRejectedTemplate,
 } = require("../utils/email/templates/withdrawalRejectionTemplate");
@@ -109,14 +111,14 @@ exports.getVendorWithdrawals = async ({
 exports.getVendorWalletBreakdown = async (vendorId) => {
   if (!vendorId) throw new Error("Vendor ID is required");
   
-  const vendor = await require("../models/Vendor").findById(vendorId).select("commissionRate");
+  const vendor = await Vendor.findById(vendorId).select("commissionRate");
   const commissionRate = vendor?.commissionRate || 10;
   
   // 1️⃣ Fetch all orders containing this vendor's items that are paid or COD
   const orders = await Order.find({ 
     "items.vendorId": vendorId,
     $or: [
-      { paymentStatus: "paid" },
+      { paymentStatus: { $in: ["paid", "PAID", "RAZORPAY"] } },
       { paymentMethod: { $in: ["cod", "COD"] } }
     ],
     orderStatus: { $ne: "cancelled" }
@@ -136,6 +138,7 @@ exports.getVendorWalletBreakdown = async (vendorId) => {
       if (item.status === "cancelled" || item.status === "returned") continue;
 
       const earnings = item.totalPrice - (item.totalPrice * commissionRate / 100);
+      console.log(`[WalletBreakdown] Order: ${order.orderNumber}, Item: ${item.name}, Price: ${item.totalPrice}, Earn: ${earnings}`);
       totalBalance += earnings;
 
       // Calculate if return period is over
@@ -145,7 +148,7 @@ exports.getVendorWalletBreakdown = async (vendorId) => {
 
       if (item.status === "delivered" && item.shipping?.deliveredAt) {
         // Get return days from product if possible, else default to 7
-        const product = await require("../models/Product").findById(item.productId).select("returnDays");
+        const product = await Product.findById(item.productId).select("returnDays");
         const returnDays = product?.returnDays || 7;
         
         returnEndDate = new Date(item.shipping.deliveredAt);
