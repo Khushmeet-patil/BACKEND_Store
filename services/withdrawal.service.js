@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Withdrawal = require("../models/Withdrawal");
 const VendorWallet = require("../models/VendorWallet");
 const Vendor = require("../models/Vendor");
@@ -176,7 +177,7 @@ exports.getVendorWalletBreakdown = async (vendorId) => {
   // Also subtract what was already withdrawn or requested
   const wallet = await VendorWallet.findOne({ vendorId });
   const requestedAmount = await Withdrawal.aggregate([
-    { $match: { vendorId: new require("mongoose").Types.ObjectId(vendorId), status: "pending" } },
+    { $match: { vendorId: new mongoose.Types.ObjectId(vendorId), status: "pending" } },
     { $group: { _id: null, total: { $sum: "$amount" } } }
   ]);
 
