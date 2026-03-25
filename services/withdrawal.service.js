@@ -204,6 +204,9 @@ exports.getVendorWalletBreakdown = async (vendorId) => {
 exports.getVendorWallet = async (vendorId) => {
   if (!vendorId) throw new Error("Vendor ID is required");
   
+  // 🔄 Always sync before returning wallet to ensure data integrity
+  await exports.syncVendorWallet(vendorId);
+  
   const breakdown = await exports.getVendorWalletBreakdown(vendorId);
   const wallet = await VendorWallet.findOne({ vendorId });
   
@@ -215,6 +218,46 @@ exports.getVendorWallet = async (vendorId) => {
     pendingBalance: breakdown.pendingBalance,
     pendingWithdrawal: breakdown.pendingWithdrawal
   };
+};
+
+/* ======================================================
+   🔄 SYNC VENDOR WALLET (RECALCULATE FROM SCRATCH)
+====================================================== */
+exports.syncVendorWallet = async (vendorId) => {
+  if (!vendorId) throw new Error("Vendor ID is required");
+
+  // 1️⃣ Get real-time earnings from breakdown logic
+  const breakdown = await exports.getVendorWalletBreakdown(vendorId);
+  
+  // 2️⃣ Get total paid withdrawals
+  const paidWithdrawals = await Withdrawal.aggregate([
+    { $match: { vendorId: new mongoose.Types.ObjectId(vendorId), status: "paid" } },
+    { $group: { _id: null, total: { $sum: "$amount" } } }
+  ]);
+  const totalWithdrawn = paidWithdrawals[0]?.total || 0;
+
+  // 3️⃣ Recalculate balance
+  // Balance should be the sum of all "withdrawable" items minus what was already withdrawn (paid)
+  // Wait, let's be careful: breakdown.totalBalance is EVERYTHING (delivered + pending)
+  // We need to match what's in the VendorWallet model: 
+  // - balance: amount available for withdrawal (including pending returns)
+  // - totalEarned: lifetime amount earned
+  
+  const recalculatedTotalEarned = breakdown.totalBalance;
+  const recalculatedBalance = Math.max(0, recalculatedTotalEarned - totalWithdrawn);
+
+  // 4️⃣ Update VendorWallet model
+  let wallet = await VendorWallet.findOne({ vendorId });
+  if (!wallet) {
+    wallet = new VendorWallet({ vendorId });
+  }
+
+  wallet.totalEarned = recalculatedTotalEarned;
+  wallet.totalWithdrawn = totalWithdrawn;
+  wallet.balance = recalculatedBalance;
+  
+  await wallet.save();
+  return wallet;
 };
 
 /* ======================================================
