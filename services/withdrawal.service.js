@@ -109,14 +109,18 @@ exports.getVendorWithdrawals = async ({
 exports.getVendorWalletBreakdown = async (vendorId) => {
   if (!vendorId) throw new Error("Vendor ID is required");
   
-  const Order = require("../models/Order");
-  const Commission = require("../models/Commission");
+  const vendor = await require("../models/Vendor").findById(vendorId).select("commissionRate");
+  const commissionRate = vendor?.commissionRate || 10;
   
-  // 1️⃣ Fetch all paid commissions for this vendor
-  const commissions = await Commission.find({ 
-    vendorId, 
-    status: "credited" 
-  }).populate("orderId", "orderNumber items createdAt");
+  // 1️⃣ Fetch all orders containing this vendor's items that are paid or COD
+  const orders = await Order.find({ 
+    "items.vendorId": vendorId,
+    $or: [
+      { paymentStatus: "paid" },
+      { paymentMethod: { $in: ["cod", "COD"] } }
+    ],
+    orderStatus: { $ne: "cancelled" }
+  }).sort({ createdAt: -1 });
 
   let totalBalance = 0;
   let withdrawableBalance = 0;
@@ -125,53 +129,52 @@ exports.getVendorWalletBreakdown = async (vendorId) => {
   const breakdown = [];
   const now = new Date();
 
-  for (const comm of commissions) {
-    const order = comm.orderId;
-    if (!order) continue;
+  for (const order of orders) {
+    const vendorItems = order.items.filter(i => i.vendorId.toString() === vendorId.toString());
+    
+    for (const item of vendorItems) {
+      if (item.status === "cancelled" || item.status === "returned") continue;
 
-    // Find the specific item in the order
-    const item = order.items.find(i => i._id.toString() === comm.orderItemId.toString());
-    if (!item) continue;
+      const earnings = item.totalPrice - (item.totalPrice * commissionRate / 100);
+      totalBalance += earnings;
 
-    const earnings = comm.vendorEarning;
-    totalBalance += earnings;
+      // Calculate if return period is over
+      let isWithdrawable = false;
+      let returnEndDate = null;
+      let daysRemaining = 0;
 
-    // Calculate if return period is over
-    let isWithdrawable = false;
-    let returnEndDate = null;
-    let daysRemaining = 0;
-
-    if (item.status === "delivered" && item.shipping?.deliveredAt) {
-      // Get return days from product if possible, else default to 7
-      const product = await require("../models/Product").findById(item.productId).select("returnDays");
-      const returnDays = product?.returnDays || 7;
-      
-      returnEndDate = new Date(item.shipping.deliveredAt);
-      returnEndDate.setDate(returnEndDate.getDate() + returnDays);
-      
-      if (now > returnEndDate) {
-        isWithdrawable = true;
-        withdrawableBalance += earnings;
+      if (item.status === "delivered" && item.shipping?.deliveredAt) {
+        // Get return days from product if possible, else default to 7
+        const product = await require("../models/Product").findById(item.productId).select("returnDays");
+        const returnDays = product?.returnDays || 7;
+        
+        returnEndDate = new Date(item.shipping.deliveredAt);
+        returnEndDate.setDate(returnEndDate.getDate() + returnDays);
+        
+        if (now > returnEndDate) {
+          isWithdrawable = true;
+          withdrawableBalance += earnings;
+        } else {
+          pendingBalance += earnings;
+          daysRemaining = Math.ceil((returnEndDate - now) / (1000 * 60 * 60 * 24));
+        }
       } else {
         pendingBalance += earnings;
-        daysRemaining = Math.ceil((returnEndDate - now) / (1000 * 60 * 60 * 24));
+        // If not yet delivered, it's pending indefinitely
       }
-    } else {
-      pendingBalance += earnings;
-      // If not yet delivered, it's pending indefinitely
-    }
 
-    breakdown.push({
-      orderId: order._id,
-      orderNumber: order.orderNumber,
-      itemName: item.name,
-      amount: earnings,
-      status: item.status,
-      deliveredAt: item.shipping?.deliveredAt,
-      returnEndDate,
-      isWithdrawable,
-      daysRemaining: isWithdrawable ? 0 : daysRemaining
-    });
+      breakdown.push({
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        itemName: item.name,
+        amount: earnings,
+        status: item.status,
+        deliveredAt: item.shipping?.deliveredAt,
+        returnEndDate,
+        isWithdrawable,
+        daysRemaining: isWithdrawable ? 0 : daysRemaining
+      });
+    }
   }
 
   // Also subtract what was already withdrawn or requested
@@ -203,7 +206,7 @@ exports.getVendorWallet = async (vendorId) => {
   
   return {
     balance: wallet?.balance || 0,
-    totalEarned: wallet?.totalEarned || 0,
+    totalEarned: breakdown.totalBalance,
     totalWithdrawn: wallet?.totalWithdrawn || 0,
     withdrawableBalance: breakdown.withdrawableBalance,
     pendingBalance: breakdown.pendingBalance,
