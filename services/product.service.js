@@ -54,6 +54,11 @@ exports.createProduct = async ({ productData, userId, vendorId }) => {
     productData.vendorId = vendorId;
     productData.approval = { status: "pending" };
 
+    // ✅ FIX: Convert empty/undefined SKU to null (sparse index allows multiple nulls)
+    if (productData.sku !== undefined) {
+      productData.sku = productData.sku?.trim() || null;
+    }
+
     if (productData.variants && productData.variants.length > 0) {
       productData.stock = productData.variants.reduce((total, v) => total + v.stock, 0);
       productData.inStock = productData.stock > 0;
@@ -587,10 +592,20 @@ exports.updateProduct = async (id, data, user = null) => {
       delete data.resubmit;
     }
 
-    const product = await Product.findByIdAndUpdate(id, data, {
-      new: true,
-      runValidators: true,
-    });
+    // ✅ FIX: sparse: true only exempts `null` from uniqueness, NOT empty strings "".
+    // Always convert any empty/whitespace SKU → null so multiple products can omit it.
+    if ("sku" in data) {
+      data.sku = (typeof data.sku === "string" ? data.sku.trim() : "") || null;
+    }
+
+    const product = await Product.findByIdAndUpdate(
+      id,
+      { $set: data },  // explicit $set prevents any accidental full-doc replacement
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
     if (!product) throw new Error("Product not found");
 
